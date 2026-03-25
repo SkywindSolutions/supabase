@@ -160,3 +160,5 @@ keys.json
 
 # Application
 **/.superset/**
+
+docker/volumes/db/data/
