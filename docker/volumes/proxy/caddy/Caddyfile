@@ -1,18 +1,57 @@
+# Global options block.
+# Disables HTTP/3 (QUIC) — Caddy auto-enables H3 for all HTTPS servers, but the
+# host UDP receive buffer (416 KiB) is far below the 7 MiB QUIC requires.  Large
+# Grafana JS bundles (3-4 MB each) fail repeatedly with H3_REQUEST_CANCELLED,
+# causing poor first-load latency.  HTTP/2 provides equivalent multiplexing over
+# TCP and is not affected by the UDP buffer constraint.
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
 {$PROXY_DOMAIN} {
-    @supabase_api path /auth/v1/* /rest/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp
+	# tls internal: used for self-signed cert when no domain is available (IP-based access).
+	# When PROXY_DOMAIN is set to a real domain, remove this directive — Caddy will obtain
+	# a Let's Encrypt certificate automatically.
+	#tls internal
 
-    handle @supabase_api {
-        reverse_proxy kong:8000
-    }
+	@supabase_api path /auth/v1/* /rest/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp
 
-    handle {
-        basic_auth {
-            # PROXY_AUTH_PASSWORD is overwritten with the bcrypt on startup
-            {$PROXY_AUTH_USERNAME} {$PROXY_AUTH_PASSWORD}
-        }
+	handle @supabase_api {
+		reverse_proxy kong:8000
+	}
 
-        reverse_proxy studio:3000
-    }
+	# Supabase Studio entry point: /supabase (and /supabase/*) → Studio with prefix stripped.
+	# In self-hosted mode Studio redirects / → /project/default, so the browser lands there
+	# after stripping the prefix.  Credentials entered here are re-sent automatically for
+	# the subsequent @studio_nav requests.
+	handle_path /supabase* {
+		basic_auth {
+			# PROXY_AUTH_PASSWORD is overwritten with the bcrypt on startup
+			{$PROXY_AUTH_USERNAME} {$PROXY_AUTH_PASSWORD}
+		}
+		reverse_proxy studio:3000
+	}
 
-    header -server
+	# Studio internal navigation paths reached after the /supabase entry point.
+	# /project/* — all project pages
+	# /_next/*   — Next.js static assets
+	# /api/platform/* — Studio metadata API (healthcheck, profile, etc.)
+	@studio_nav path /project/* /_next/* /api/platform/*
+
+	handle @studio_nav {
+		basic_auth {
+			# PROXY_AUTH_PASSWORD is overwritten with the bcrypt on startup
+			{$PROXY_AUTH_USERNAME} {$PROXY_AUTH_PASSWORD}
+		}
+		reverse_proxy studio:3000
+	}
+
+	# Default: Grafana at the root — Grafana manages its own login page.
+	handle {
+		reverse_proxy grafana:3000
+	}
+
+	header -server
 }

@@ -1,0 +1,62 @@
+# Grafana overlay - deploy alongside Supabase and Caddy
+#
+# Usage:
+#   Start (first time or after changes):
+#     docker compose -f docker-compose.yml -f docker-compose.caddy.yml -f docker-compose.grafana.yml up -d grafana
+#   Then reload Caddy to pick up routing:
+#     docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+#
+# Access Grafana at: https://<PROXY_DOMAIN>/          (root — Grafana login)
+# Access Studio  at: https://<PROXY_DOMAIN>/supabase  (Caddy basic-auth, then Studio)
+#
+# Required .env variables:
+#   GRAFANA_ADMIN_USER     - Grafana admin username (default: admin)
+#   GRAFANA_ADMIN_PASSWORD - Grafana admin password (must be set — no default)
+#   PROXY_DOMAIN           - Same domain/IP used by Caddy (e.g. 147.182.210.222)
+
+name: supabase
+
+services:
+  grafana:
+    container_name: supabase-grafana
+    image: grafana/grafana-oss:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      # Grafana is served at the domain root behind the Caddy proxy
+      GF_SERVER_ROOT_URL: https://${PROXY_DOMAIN}/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      # Disable telemetry
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Exposed for datasource provisioning variable substitution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./volumes/grafana/provisioning:/etc/grafana/provisioning
+      # Custom branding: replace Grafana logo and favicon with Skywind assets
+      # Grafana serves static assets from public/build/img/ (not public/img/)
+      - ./volumes/grafana/img/grafana_icon.svg:/usr/share/grafana/public/build/img/grafana_icon.svg:ro
+      - ./volumes/grafana/img/grafana_typelogo.svg:/usr/share/grafana/public/build/img/grafana_typelogo.svg:ro
+      - ./volumes/grafana/img/fav32.png:/usr/share/grafana/public/build/img/fav32.png:ro
+      # Main login page logo (text logo, dark and light theme variants)
+      - ./volumes/grafana/img/grafana_text_logo_dark.svg:/usr/share/grafana/public/build/img/grafana_text_logo_dark.svg:ro
+      - ./volumes/grafana/img/grafana_text_logo_light.svg:/usr/share/grafana/public/build/img/grafana_text_logo_light.svg:ro
+      - ./volumes/grafana/img/grafana_text_logo-dark.svg:/usr/share/grafana/public/build/img/grafana_text_logo-dark.svg:ro
+      - ./volumes/grafana/img/grafana_text_logo-light.svg:/usr/share/grafana/public/build/img/grafana_text_logo-light.svg:ro
+      # Hashed static asset paths (actual paths used by the JS bundles at runtime)
+      - ./volumes/grafana/img/grafana_icon.svg:/usr/share/grafana/public/build/static/img/grafana_icon.1e0deb6b.svg:ro
+      - ./volumes/grafana/img/grafana_text_logo_dark.svg:/usr/share/grafana/public/build/static/img/grafana_text_logo_dark.70a1e5ee.svg:ro
+      - ./volumes/grafana/img/grafana_text_logo_light.svg:/usr/share/grafana/public/build/static/img/grafana_text_logo_light.467e047c.svg:ro
+      # Custom HTML template: injects CSS to enlarge the login page logo
+      - ./volumes/grafana/index.html:/usr/share/grafana/public/views/index.html:ro
+
+volumes:
+  grafana_data:
+    driver: local

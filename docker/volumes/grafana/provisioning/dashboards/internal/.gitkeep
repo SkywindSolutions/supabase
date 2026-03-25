@@ -1,0 +1,3 @@
+# Placeholder — internal dashboards are provisioned from this directory.
+# JSON dashboard files added here are automatically placed in the
+# "Internal Dashboards" Grafana folder (see dashboards.yaml).

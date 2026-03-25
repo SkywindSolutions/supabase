@@ -1,0 +1,29 @@
+# Grafana datasource provisioning — Supabase PostgreSQL
+#
+# This file is automatically loaded by Grafana on startup.
+# Environment variables (e.g. ${POSTGRES_PASSWORD}) are expanded at runtime.
+#
+# Connection target: supabase-db:5432 (internal Docker network)
+# User: postgres (superuser — scope to a read-only role before production use)
+# Database: postgres (default Supabase/PostgREST database)
+
+apiVersion: 1
+
+datasources:
+  - name: Supabase PostgreSQL
+    type: postgres
+    uid: supabase-postgres
+    url: supabase-db:5432
+    user: postgres
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: postgres
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    isDefault: true
+    editable: false
