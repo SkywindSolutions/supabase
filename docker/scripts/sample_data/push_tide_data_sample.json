@@ -1,0 +1,20 @@
+[
+  {
+    "dtg_gmt": "2026-03-31T12:00:00Z",
+    "datum": "MLLW",
+    "astronomical_forecast_fd": 1.82,
+    "tidal_observations_ft": 1.76,
+    "tidemean": 1.79,
+    "tidelb": 1.63,
+    "tideub": 1.94
+  },
+  {
+    "dtg_gmt": "2026-03-31T13:00:00Z",
+    "datum": "MLLW",
+    "astronomical_forecast_fd": 1.97,
+    "tidal_observations_ft": 1.92,
+    "tidemean": 1.95,
+    "tidelb": 1.79,
+    "tideub": 2.11
+  }
+]
