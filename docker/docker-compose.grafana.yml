@@ -29,12 +29,19 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_APP_TITLE: Skywind Solutions
       # Grafana is served at the domain root behind the Caddy proxy
       GF_SERVER_ROOT_URL: https://${PROXY_DOMAIN}/
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
       # Disable telemetry
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Disable sharing features that are not allowed in this environment.
+      GF_SNAPSHOTS_ENABLED: "false"
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
+      GF_PUBLIC_DASHBOARDS_ENABLED: "false"
+      # Format hourly x-axis labels as Tue 04/07 06 PM.
+      GF_DATE_FORMATS_INTERVAL_HOUR: "ddd MM/DD hh A"
       # Exposed for datasource provisioning variable substitution
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -54,6 +61,11 @@ services:
       - ./volumes/grafana/img/grafana_icon.svg:/usr/share/grafana/public/build/static/img/grafana_icon.1e0deb6b.svg:ro
       - ./volumes/grafana/img/grafana_text_logo_dark.svg:/usr/share/grafana/public/build/static/img/grafana_text_logo_dark.70a1e5ee.svg:ro
       - ./volumes/grafana/img/grafana_text_logo_light.svg:/usr/share/grafana/public/build/static/img/grafana_text_logo_light.467e047c.svg:ro
+      # Patched Grafana frontend bundle: replaces the login welcome heading text.
+      - ./volumes/grafana/build/8060.5e67a0b955ad52462e5e.js:/usr/share/grafana/public/build/8060.5e67a0b955ad52462e5e.js:ro
+      - ./volumes/grafana/build/9521.77ebae84b28ee91d9e4f.js:/usr/share/grafana/public/build/9521.77ebae84b28ee91d9e4f.js:ro
+      - ./volumes/grafana/build/gettingStartedPanel.91777d9ac8db39b12877.js:/usr/share/grafana/public/build/gettingStartedPanel.91777d9ac8db39b12877.js:ro
+      - ./volumes/grafana/build/welcomeBanner.103426aa0e53dbf255aa.js:/usr/share/grafana/public/build/welcomeBanner.103426aa0e53dbf255aa.js:ro
       # Custom HTML template: injects CSS to enlarge the login page logo
       - ./volumes/grafana/index.html:/usr/share/grafana/public/views/index.html:ro
 

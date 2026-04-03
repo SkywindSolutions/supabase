@@ -202,7 +202,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -271,7 +271,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -418,7 +418,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -536,7 +536,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locid)\n  locid AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Visibility (mean)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\nORDER BY locid, timestamp DESC",
+          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Visibility (mean)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
           "refId": "A"
         }
       ],
@@ -574,12 +574,12 @@
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT locid FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
-        "query": "SELECT DISTINCT locid FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,

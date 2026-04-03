@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -12,7 +15,7 @@
       }
     ]
   },
-  "description": "7-day tide forecast — internal view. Includes observation overlays (prelimtide, astrotide) and model diagnostics. Internal use only.",
+  "description": "Tide forecast \u2014 internal view. Includes observation overlays (prelimtide, astrotide) and model diagnostics. Internal use only.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -20,10 +23,15 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -35,62 +43,164 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "lengthft"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "tidemean" },
+            "matcher": {
+              "id": "byName",
+              "options": "tidemean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Tide (mean)" },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Tide (mean)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "tideub" },
+            "matcher": {
+              "id": "byName",
+              "options": "tideub"
+            },
             "properties": [
-              { "id": "displayName", "value": "Tide (upper bound)" },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillBelowTo", "value": "tidelb" },
-              { "id": "custom.fillOpacity", "value": 10 }
+              {
+                "id": "displayName",
+                "value": "Tide (upper bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "tidelb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "tidelb" },
+            "matcher": {
+              "id": "byName",
+              "options": "tidelb"
+            },
             "properties": [
-              { "id": "displayName", "value": "Tide (lower bound)" },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Tide (lower bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 12, "w": 18, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 12,
+        "w": 18,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "legend": {
@@ -99,39 +209,61 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
-      "title": "Tide Forecast (7-day)",
+      "title": "Tide Forecast",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "blue", "value": null },
-              { "color": "green", "value": 0 }
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
             ]
           },
           "unit": "lengthft"
         },
         "overrides": []
       },
-      "gridPos": { "h": 12, "w": 6, "x": 18, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -139,7 +271,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -147,11 +281,14 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -159,76 +296,212 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Reference datum used for the selected location's tide heights.",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No datum",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^datum$/i",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  datum\nFROM forecast_data\nWHERE\n  datum IS NOT NULL\n  AND tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Forecast Datum",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Tide (mean)" },
+            "matcher": {
+              "id": "byName",
+              "options": "Tide (mean)"
+            },
             "properties": [
-              { "id": "unit", "value": "lengthft" },
+              {
+                "id": "unit",
+                "value": "lengthft"
+              },
               {
                 "id": "thresholds",
                 "value": {
                   "mode": "absolute",
                   "steps": [
-                    { "color": "blue", "value": null },
-                    { "color": "green", "value": 0 }
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
                   ]
                 }
               },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Last Updated" },
-            "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^Current Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datum"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 12 },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
       "id": 3,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locid)\n  locid AS \"Location\",\n  timestamp AS \"Last Updated\",\n  tidemean AS \"Tide (mean)\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY locid, timestamp DESC",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time (${__timezone})\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Tide (mean)\",\n    datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time (${__timezone})\",\n  \"Tide (mean)\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
           "refId": "A"
         }
       ],
-      "title": "Tide by Location (latest per location)",
+      "title": "Tide by Location (current interpolated)",
       "type": "table"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -240,58 +513,144 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "lengthft"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "tidemean" },
+            "matcher": {
+              "id": "byName",
+              "options": "tidemean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Forecast (mean)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Forecast (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "astrotide" },
+            "matcher": {
+              "id": "byName",
+              "options": "astrotide"
+            },
             "properties": [
-              { "id": "displayName", "value": "Astronomical Tide" },
-              { "id": "custom.lineStyle", "value": { "dash": [6, 6], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Astronomical Tide"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    6,
+                    6
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "prelimtide" },
+            "matcher": {
+              "id": "byName",
+              "options": "prelimtide"
+            },
             "properties": [
-              { "id": "displayName", "value": "Observed (prelim)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Observed (prelim)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 19 },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
       "id": 4,
       "options": {
         "legend": {
@@ -300,30 +659,46 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
+      "timeFrom": "7d",
       "title": "Observed vs. Forecast Tide",
       "type": "timeseries"
     }
   ],
   "refresh": "5m",
   "schemaVersion": 39,
-  "tags": ["internal", "tide"],
+  "tags": [
+    "internal",
+    "tide"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "text": "group_alpha", "value": "group_alpha" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "group_alpha",
+          "value": "group_alpha"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -338,8 +713,14 @@
         "label": "Group"
       },
       {
-        "current": { "text": "GFS", "value": "GFS" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "tide_astro",
+          "value": "tide_astro"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -354,15 +735,21 @@
         "label": "Model"
       },
       {
-        "current": { "text": "BOSTON_INNER", "value": "BOSTON_INNER" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
-        "definition": "SELECT DISTINCT locid FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "current": {
+          "text": "BOSTON_INNER",
+          "value": "BOSTON_INNER"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
         "options": [],
-        "query": "SELECT DISTINCT locid FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -371,7 +758,10 @@
       }
     ]
   },
-  "time": { "from": "now", "to": "now+7d" },
+  "time": {
+    "from": "now",
+    "to": "now+7d"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Tide Forecast (Internal)",

@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -12,7 +15,7 @@
       }
     ]
   },
-  "description": "7-day wind forecast — internal view. Includes observation overlays and wind direction diagnostics. Internal use only.",
+  "description": "7-day wind forecast \u2014 internal view. Includes observation overlays and wind direction diagnostics. Internal use only.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -20,10 +23,15 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -35,59 +43,143 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "velocityknot"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "windspdmean" },
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Wind Speed (mean)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Wind Speed (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "windspdub" },
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
             "properties": [
-              { "id": "displayName", "value": "Wind Speed (upper bound)" },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillBelowTo", "value": "windspdlb" },
-              { "id": "custom.fillOpacity", "value": 10 }
+              {
+                "id": "displayName",
+                "value": "Wind Speed (upper bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "windspdlb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "windspdlb" },
+            "matcher": {
+              "id": "byName",
+              "options": "windspdlb"
+            },
             "properties": [
-              { "id": "displayName", "value": "Wind Speed (lower bound)" },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Wind Speed (lower bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 18, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "legend": {
@@ -96,15 +188,21 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -112,24 +210,43 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 15 },
-              { "color": "red", "value": 25 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
             ]
           },
           "unit": "velocityknot"
         },
         "overrides": []
       },
-      "gridPos": { "h": 9, "w": 6, "x": 18, "y": 0 },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -137,7 +254,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -145,11 +264,14 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -157,51 +279,83 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Direction (°)",
+            "axisLabel": "Direction (\u00b0)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "max": 360,
           "min": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "degree"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "winddirmean" },
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Wind Direction (mean)" }
+              {
+                "id": "displayName",
+                "value": "Wind Direction (mean)"
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 3,
       "options": {
         "legend": {
@@ -210,15 +364,21 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -226,66 +386,117 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Wind Speed (mean)" },
+            "matcher": {
+              "id": "byName",
+              "options": "Wind Speed (mean)"
+            },
             "properties": [
-              { "id": "unit", "value": "velocityknot" },
+              {
+                "id": "unit",
+                "value": "velocityknot"
+              },
               {
                 "id": "thresholds",
                 "value": {
                   "mode": "absolute",
                   "steps": [
-                    { "color": "green", "value": null },
-                    { "color": "yellow", "value": 15 },
-                    { "color": "red", "value": 25 }
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 15
+                    },
+                    {
+                      "color": "red",
+                      "value": 25
+                    }
                   ]
                 }
               },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Last Updated" },
-            "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+            "matcher": {
+              "id": "byName",
+              "options": "Last Updated"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "id": 4,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locid)\n  locid AS \"Location\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed (mean)\"\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY locid, timestamp DESC",
+          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed (mean)\"\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
           "refId": "A"
         }
       ],
@@ -293,10 +504,15 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -308,49 +524,111 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "velocityknot"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "windspdmean" },
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Forecast (mean)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Forecast (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "windspd" },
+            "matcher": {
+              "id": "byName",
+              "options": "windspd"
+            },
             "properties": [
-              { "id": "displayName", "value": "Observed" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Observed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 25 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
       "id": 5,
       "options": {
         "legend": {
@@ -359,75 +637,132 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
+      "timeFrom": "7d",
       "title": "Observed vs. Forecast Wind Speed",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Direction (°)",
+            "axisLabel": "Direction (\u00b0)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "max": 360,
           "min": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "degree"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "winddirmean" },
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Forecast Direction (mean)" },
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Forecast Direction (mean)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "winddir" },
+            "matcher": {
+              "id": "byName",
+              "options": "winddir"
+            },
             "properties": [
-              { "id": "displayName", "value": "Observed Direction" },
-              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Observed Direction"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 34 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
       "id": 6,
       "options": {
         "legend": {
@@ -436,30 +771,46 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean,\n  winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean,\n  winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
+      "timeFrom": "7d",
       "title": "Observed vs. Forecast Wind Direction",
       "type": "timeseries"
     }
   ],
   "refresh": "5m",
   "schemaVersion": 39,
-  "tags": ["internal", "wind"],
+  "tags": [
+    "internal",
+    "wind"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "text": "group_alpha", "value": "group_alpha" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "group_alpha",
+          "value": "group_alpha"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -474,8 +825,14 @@
         "label": "Group"
       },
       {
-        "current": { "text": "GFS", "value": "GFS" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "GFS",
+          "value": "GFS"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -490,15 +847,21 @@
         "label": "Model"
       },
       {
-        "current": { "text": "BOSTON_INNER", "value": "BOSTON_INNER" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
-        "definition": "SELECT DISTINCT locid FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "current": {
+          "text": "BOSTON_INNER",
+          "value": "BOSTON_INNER"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
         "options": [],
-        "query": "SELECT DISTINCT locid FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -507,7 +870,10 @@
       }
     ]
   },
-  "time": { "from": "now", "to": "now+7d" },
+  "time": {
+    "from": "now",
+    "to": "now+7d"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Wind Forecast (Internal)",

@@ -73,6 +73,8 @@ TEST_PW_CAPE_COD=${TEST_PW_CAPE_COD:-$(_get_env TEST_PW_CAPE_COD)}
 TEST_PW_PORTLAND=${TEST_PW_PORTLAND:-$(_get_env TEST_PW_PORTLAND)}
 TEST_PW_GLOUCESTER=${TEST_PW_GLOUCESTER:-$(_get_env TEST_PW_GLOUCESTER)}
 TEST_PW_INTERNAL=${TEST_PW_INTERNAL:-$(_get_env TEST_PW_INTERNAL)}
+TEST_PW_PORTRICHEY=${TEST_PW_PORTRICHEY:-$(_get_env TEST_PW_PORTRICHEY)}
+TEST_PW_CLEARWATER=${TEST_PW_CLEARWATER:-$(_get_env TEST_PW_CLEARWATER)}
 
 : "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER not set in .env}"
 : "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD not set in .env}"
@@ -94,7 +96,8 @@ TEST_PW_CAPE_COD="${TEST_PW_CAPE_COD:-TestCapeCod2026!}"
 TEST_PW_PORTLAND="${TEST_PW_PORTLAND:-TestPortland2026!}"
 TEST_PW_GLOUCESTER="${TEST_PW_GLOUCESTER:-TestGloucester2026!}"
 TEST_PW_INTERNAL="${TEST_PW_INTERNAL:-TestInternal2026!}"
-
+TEST_PW_PORTRICHEY="${TEST_PW_PORTRICHEY:-PortRichey2026!}"
+TEST_PW_CLEARWATER="${TEST_PW_CLEARWATER:-TestClearwater2026!}"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -277,12 +280,16 @@ TEAM_BOSTON=$(ensure_team "Boston Inner Harbor")
 TEAM_CAPE_COD=$(ensure_team "Cape Cod Bay")
 TEAM_PORTLAND=$(ensure_team "Portland ME")
 TEAM_GLOUCESTER=$(ensure_team "Gloucester MA")
+TEAM_PORTRICHEY=$(ensure_team "Portrichey")
+TEAM_CLEARWATER=$(ensure_team "Clearwater")
 
 log "=== Step 3: Create test user accounts ==="
 USER_BOSTON=$(ensure_user "test_boston"     "Test Boston"     "test_boston@skywind.internal"     "$TEST_PW_BOSTON")
 USER_CAPE_COD=$(ensure_user "test_cape_cod" "Test Cape Cod"   "test_cape_cod@skywind.internal"   "$TEST_PW_CAPE_COD")
 USER_PORTLAND=$(ensure_user "test_portland" "Test Portland"   "test_portland@skywind.internal"   "$TEST_PW_PORTLAND")
 USER_GLOUCESTER=$(ensure_user "test_gloucester" "Test Gloucester" "test_gloucester@skywind.internal" "$TEST_PW_GLOUCESTER")
+USER_PORTRICHEY=$(ensure_user "test_portrichey" "Test Portrichey" "test_portrichey@skywind.internal" "${TEST_PW_PORTRICHEY:-PortRichey2026!}")
+USER_CLEARWATER=$(ensure_user "test_clearwater" "Test Clearwater" "test_clearwater@skywind.internal" "${TEST_PW_CLEARWATER:-TestClearwater2026!}")
 USER_INTERNAL=$(ensure_user "test_internal" "Test Internal"   "test_internal@skywind.internal"   "$TEST_PW_INTERNAL")
 
 log "=== Step 4: Assign users to teams ==="
@@ -298,6 +305,12 @@ add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PORTLAND"
 add_user_to_team "$TEAM_GLOUCESTER" "$USER_GLOUCESTER"
 add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_GLOUCESTER"
 
+add_user_to_team "$TEAM_PORTRICHEY" "$USER_PORTRICHEY"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PORTRICHEY"
+
+add_user_to_team "$TEAM_CLEARWATER" "$USER_CLEARWATER"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CLEARWATER"
+
 add_user_to_team "$INTERNAL_TEAM_ID" "$USER_INTERNAL"
 
 log "=== Step 5: Set folder permissions ==="
@@ -309,6 +322,8 @@ declare -A FOLDER_UIDS=(
     ["cape_cod"]="cust-grp-cape-cod"
     ["portland"]="cust-grp-portland"
     ["gloucester"]="cust-grp-gloucester"
+    ["portrichey"]="cust-grp-portrichey"
+    ["clearwater"]="cust-grp-clearwater"
 )
 
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
@@ -320,12 +335,16 @@ patch_folder_team_permission "${FOLDER_UIDS[boston]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[cape_cod]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[portland]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[gloucester]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$INTERNAL_TEAM_ID" 1
 
 # Per-group teams: Viewer on their folder only
 patch_folder_team_permission "${FOLDER_UIDS[boston]}" "$TEAM_BOSTON" 1
 patch_folder_team_permission "${FOLDER_UIDS[cape_cod]}" "$TEAM_CAPE_COD" 1
 patch_folder_team_permission "${FOLDER_UIDS[portland]}" "$TEAM_PORTLAND" 1
 patch_folder_team_permission "${FOLDER_UIDS[gloucester]}" "$TEAM_GLOUCESTER" 1
+patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$TEAM_PORTRICHEY" 1
+patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$TEAM_CLEARWATER" 1
 
 log "=== Step 6: Set home dashboards for test users ==="
 # Customer accounts: resolve primary dashboard from the group provisioning folder
@@ -334,6 +353,9 @@ set_user_home_dashboard "test_boston"     "$TEST_PW_BOSTON"     "$(resolve_home_
 set_user_home_dashboard "test_cape_cod"   "$TEST_PW_CAPE_COD"   "$(resolve_home_dashboard_uid grp_cape_cod)"
 set_user_home_dashboard "test_portland"   "$TEST_PW_PORTLAND"   "$(resolve_home_dashboard_uid grp_portland)"
 set_user_home_dashboard "test_gloucester" "$TEST_PW_GLOUCESTER"  "$(resolve_home_dashboard_uid grp_gloucester)"
+set_user_home_dashboard "test_portrichey" "$TEST_PW_PORTRICHEY"  "$(resolve_home_dashboard_uid grp_portrichey)"
+set_user_home_dashboard "test_clearwater" "$TEST_PW_CLEARWATER"  "$(resolve_home_dashboard_uid grp_clearwater)"
+
 # Internal account: always land on the internal visibility dashboard
 set_user_home_dashboard "test_internal"   "$TEST_PW_INTERNAL"    "internal-visibility"
 

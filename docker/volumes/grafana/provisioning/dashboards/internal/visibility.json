@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -12,7 +15,7 @@
       }
     ]
   },
-  "description": "24-hour visibility forecast — internal view. Includes observation overlays, model comparison, and bias diagnostics. Internal use only.",
+  "description": "24-hour visibility forecast \u2014 internal view. Includes observation overlays, model comparison, and bias diagnostics. Internal use only.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -20,10 +23,15 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -35,59 +43,143 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "lengthmi"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "vismean" },
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Visibility (mean)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Visibility (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "visub" },
+            "matcher": {
+              "id": "byName",
+              "options": "visub"
+            },
             "properties": [
-              { "id": "displayName", "value": "Visibility (upper bound)" },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillBelowTo", "value": "vislb" },
-              { "id": "custom.fillOpacity", "value": 10 }
+              {
+                "id": "displayName",
+                "value": "Visibility (upper bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "vislb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "vislb" },
+            "matcher": {
+              "id": "byName",
+              "options": "vislb"
+            },
             "properties": [
-              { "id": "displayName", "value": "Visibility (lower bound)" },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
-              { "id": "custom.lineWidth", "value": 1 },
-              { "id": "custom.fillOpacity", "value": 0 }
+              {
+                "id": "displayName",
+                "value": "Visibility (lower bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 18, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "legend": {
@@ -96,15 +188,21 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -112,24 +210,43 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 0.5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
             ]
           },
           "unit": "lengthmi"
         },
         "overrides": []
       },
-      "gridPos": { "h": 9, "w": 6, "x": 18, "y": 0 },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -137,7 +254,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -145,11 +264,14 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -157,10 +279,15 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -172,16 +299,27 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "max": 1,
           "min": 0,
@@ -189,32 +327,75 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "percentunit"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "probvis15" },
-            "properties": [{ "id": "displayName", "value": "P(vis \u2264 1.5 mi)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "probvis15"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "P(vis \u2264 1.5 mi)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "probvis1" },
-            "properties": [{ "id": "displayName", "value": "P(vis \u2264 1 mi)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "probvis1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "P(vis \u2264 1 mi)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "probvis075" },
-            "properties": [{ "id": "displayName", "value": "P(vis \u2264 0.75 mi)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "probvis075"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "P(vis \u2264 0.75 mi)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "probvis05" },
-            "properties": [{ "id": "displayName", "value": "P(vis \u2264 0.5 mi)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "probvis05"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "P(vis \u2264 0.5 mi)"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 3,
       "options": {
         "legend": {
@@ -223,15 +404,21 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -239,66 +426,117 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Visibility (mean)" },
+            "matcher": {
+              "id": "byName",
+              "options": "Visibility (mean)"
+            },
             "properties": [
-              { "id": "unit", "value": "lengthmi" },
+              {
+                "id": "unit",
+                "value": "lengthmi"
+              },
               {
                 "id": "thresholds",
                 "value": {
                   "mode": "absolute",
                   "steps": [
-                    { "color": "red", "value": null },
-                    { "color": "yellow", "value": 0.5 },
-                    { "color": "green", "value": 1.5 }
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "green",
+                      "value": 1.5
+                    }
                   ]
                 }
               },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Last Updated" },
-            "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+            "matcher": {
+              "id": "byName",
+              "options": "Last Updated"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "id": 4,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locid)\n  locid AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Visibility (mean)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY locid, timestamp DESC",
+          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Visibility (mean)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
           "refId": "A"
         }
       ],
@@ -306,10 +544,15 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -321,49 +564,111 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "lengthmi"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "vismean" },
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
             "properties": [
-              { "id": "displayName", "value": "Forecast (mean)" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Forecast (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "obsvis" },
+            "matcher": {
+              "id": "byName",
+              "options": "obsvis"
+            },
             "properties": [
-              { "id": "displayName", "value": "Observed" },
-              { "id": "custom.lineStyle", "value": { "fill": "solid" } },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Observed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 25 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
       "id": 5,
       "options": {
         "legend": {
@@ -372,26 +677,38 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  obsvis\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  obsvis\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
+      "timeFrom": "7d",
       "title": "Observed vs. Forecast Visibility",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -403,47 +720,101 @@
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "lengthmi"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "vismean" },
-            "properties": [{ "id": "displayName", "value": "vismean (ensemble mean)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "vismean (ensemble mean)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "hrrrvis" },
-            "properties": [{ "id": "displayName", "value": "hrrrvis (HRRR)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "hrrrvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "hrrrvis (HRRR)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "nbmvis" },
-            "properties": [{ "id": "displayName", "value": "nbmvis (NBM)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "nbmvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "nbmvis (NBM)"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "vismedian" },
-            "properties": [{ "id": "displayName", "value": "vismedian (median)" }]
+            "matcher": {
+              "id": "byName",
+              "options": "vismedian"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "vismedian (median)"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 34 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
       "id": 6,
       "options": {
         "legend": {
@@ -452,15 +823,21 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  hrrrvis,\n  nbmvis,\n  vismedian\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  hrrrvis,\n  nbmvis,\n  vismedian\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -468,74 +845,141 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Forecast (mean)" },
-            "properties": [{ "id": "unit", "value": "lengthmi" }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Observed" },
-            "properties": [{ "id": "unit", "value": "lengthmi" }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Bias (forecast - obs)" },
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)"
+            },
             "properties": [
-              { "id": "unit", "value": "lengthmi" },
+              {
+                "id": "unit",
+                "value": "lengthmi"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthmi"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bias (forecast - obs)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthmi"
+              },
               {
                 "id": "thresholds",
                 "value": {
                   "mode": "absolute",
                   "steps": [
-                    { "color": "blue", "value": null },
-                    { "color": "green", "value": -0.25 },
-                    { "color": "orange", "value": 0.5 }
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": -0.25
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.5
+                    }
                   ]
                 }
               },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Time" },
-            "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 43 },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
       "id": 7,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"Time\",\n  vismean AS \"Forecast (mean)\",\n  obsvis AS \"Observed\",\n  (vismean - obsvis) AS \"Bias (forecast - obs)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND obsvis IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC",
+          "rawSql": "SELECT\n  timestamp AS \"Time\",\n  vismean AS \"Forecast (mean)\",\n  obsvis AS \"Observed\",\n  (vismean - obsvis) AS \"Bias (forecast - obs)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND obsvis IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC",
           "refId": "A"
         }
       ],
@@ -545,12 +989,21 @@
   ],
   "refresh": "5m",
   "schemaVersion": 39,
-  "tags": ["internal", "visibility"],
+  "tags": [
+    "internal",
+    "visibility"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "text": "group_alpha", "value": "group_alpha" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "group_alpha",
+          "value": "group_alpha"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -565,8 +1018,14 @@
         "label": "Group"
       },
       {
-        "current": { "text": "GFS", "value": "GFS" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "GFS",
+          "value": "GFS"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -581,15 +1040,21 @@
         "label": "Model"
       },
       {
-        "current": { "text": "BOSTON_INNER", "value": "BOSTON_INNER" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
-        "definition": "SELECT DISTINCT locid FROM forecast_data WHERE vismean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "current": {
+          "text": "BOSTON_INNER",
+          "value": "BOSTON_INNER"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
         "options": [],
-        "query": "SELECT DISTINCT locid FROM forecast_data WHERE vismean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -598,7 +1063,10 @@
       }
     ]
   },
-  "time": { "from": "now", "to": "now+24h" },
+  "time": {
+    "from": "now",
+    "to": "now+24h"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Visibility Forecast (Internal)",

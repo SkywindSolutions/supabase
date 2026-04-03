@@ -57,10 +57,11 @@
       }
       /* Enlarge the Skywind logo on the Grafana login page */
       img[src*="grafana_text_logo"] {
-        width: 480px !important;
-        max-width: 480px !important;
+        width: 360px !important;
+        max-width: 360px !important;
         height: auto !important;
       }
+      /* Rotation is applied by JS so it works even where :has support is inconsistent. */
     </style>
   </head>
 
@@ -292,6 +293,306 @@
     <div id="reactRoot"></div>
 
     <script nonce="[[.Nonce]]">
+      // Apply Skywind branding and lock down customer UI actions.
+      (function() {
+        var defaultHeading = 'Welcome to Grafana';
+        var brandedHeading = 'Skywind Solutions Dashboard';
+        var grafanaWordmark = 'Grafana';
+        var skywindWordmark = 'Skywind Solutions';
+        var headingObserver;
+        var rewriteAttempts = 0;
+        var maxRewriteAttempts = 120;
+        var rewriteTimer;
+
+        function isInternalUser() {
+          var user = window.grafanaBootData && window.grafanaBootData.user;
+          var role = ((user && user.orgRole) || '').toLowerCase();
+          var isGrafanaAdmin = !!(user && user.isGrafanaAdmin);
+          return isGrafanaAdmin || role === 'admin' || role === 'editor';
+        }
+
+        // Default client sessions to collapsed left navigation.
+        try {
+          window.localStorage.setItem('grafana.navigation.docked', 'false');
+          window.localStorage.setItem('grafana.navigation.open', 'false');
+        } catch (e) {
+          // Ignore localStorage errors (private browsing / policy restrictions).
+        }
+
+        function replaceLoginHeadingText() {
+          var walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+          var textNode;
+          var replaced = false;
+
+          while ((textNode = walker.nextNode())) {
+            if (textNode.nodeValue && textNode.nodeValue.trim() === defaultHeading) {
+              textNode.nodeValue = brandedHeading;
+              replaced = true;
+            }
+          }
+
+          rewriteAttempts += 1;
+
+          if (replaced && rewriteAttempts >= 3) {
+            if (rewriteTimer) {
+              window.clearInterval(rewriteTimer);
+              rewriteTimer = null;
+            }
+          } else if (rewriteAttempts >= maxRewriteAttempts) {
+            if (headingObserver) {
+              headingObserver.disconnect();
+            }
+            if (rewriteTimer) {
+              window.clearInterval(rewriteTimer);
+              rewriteTimer = null;
+            }
+          }
+
+          return replaced;
+        }
+
+        function replaceSidebarBrandText() {
+          var walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+          var textNode;
+
+          while ((textNode = walker.nextNode())) {
+            if (!textNode.nodeValue || textNode.nodeValue.trim() !== grafanaWordmark) {
+              continue;
+            }
+
+            var container = textNode.parentElement;
+            if (!container) {
+              continue;
+            }
+
+            if (
+              container.closest('nav, [aria-label*="menu"], [class*="sidemenu"], [class*="navigation"], [data-testid*="sidemenu"], [data-testid*="nav"]') ||
+              container.closest('a, button, [role="button"], [role="link"]')
+            ) {
+              textNode.nodeValue = skywindWordmark;
+            }
+          }
+
+          var brandedNodes = document.querySelectorAll('[aria-label], [title], [data-testid], a, button, [role="button"], [role="link"]');
+          var i;
+          for (i = 0; i < brandedNodes.length; i += 1) {
+            var node = brandedNodes[i];
+            var aria = node.getAttribute('aria-label');
+            var title = node.getAttribute('title');
+
+            if (aria && aria.trim() === grafanaWordmark) {
+              node.setAttribute('aria-label', skywindWordmark);
+            }
+            if (title && title.trim() === grafanaWordmark) {
+              node.setAttribute('title', skywindWordmark);
+            }
+          }
+        }
+
+        function hideNodeAndRelatedDropdown(node) {
+          var wrapper = node.closest('[role="group"], .toolbar-button-row, .toolbar-button-group');
+          node.style.display = 'none';
+
+          if (wrapper) {
+            wrapper.style.display = 'none';
+            return;
+          }
+
+          if (node.nextElementSibling && node.nextElementSibling.tagName === 'BUTTON') {
+            node.nextElementSibling.style.display = 'none';
+          }
+        }
+
+        function applyTideXAxisRotation() {
+          var titles = document.querySelectorAll('h1, h2, h3, h4, h5, h6, [title], [aria-label]');
+          var i;
+
+          for (i = 0; i < titles.length; i += 1) {
+            var titleNode = titles[i];
+            var text = (titleNode.textContent || titleNode.getAttribute('title') || '').trim();
+
+            if (!text || text.indexOf('Tide Forecast') !== 0) {
+              continue;
+            }
+
+            var panel = titleNode.closest('.panel-container, [data-testid="panel-container"], section');
+            if (!panel) {
+              continue;
+            }
+
+            var ticks = panel.querySelectorAll('.u-axis.u-x .u-tick, .u-axis.u-x .u-tick * , .u-axis.u-x .u-value, .u-axis.u-x text');
+            var j;
+            for (j = 0; j < ticks.length; j += 1) {
+              ticks[j].style.transform = 'rotate(-35deg)';
+              ticks[j].style.transformOrigin = 'top left';
+              ticks[j].style.whiteSpace = 'nowrap';
+              ticks[j].style.display = 'inline-block';
+            }
+          }
+        }
+
+        function hideDisallowedHeaderActions() {
+          var controls = document.querySelectorAll('button, [role="button"], a');
+          var i;
+
+          function isShareOrExportLabel(labelText) {
+            return (
+              labelText === 'share' ||
+              labelText === 'export' ||
+              labelText.indexOf('share dashboard') !== -1 ||
+              labelText.indexOf('export') === 0 ||
+              labelText.indexOf('share panel') !== -1 ||
+              labelText.indexOf('share internally') !== -1 ||
+              labelText.indexOf('export as code') !== -1 ||
+              labelText.indexOf('export as image') !== -1
+            );
+          }
+
+          for (i = 0; i < controls.length; i += 1) {
+            var node = controls[i];
+            var label = ((node.getAttribute('aria-label') || '') + ' ' + (node.textContent || '')).trim().toLowerCase();
+
+            if (label && isShareOrExportLabel(label)) {
+              hideNodeAndRelatedDropdown(node);
+              continue;
+            }
+
+            // Hide unlabeled split-button arrows when the same group contains a Share/Export action.
+            if (!label) {
+              var group = node.closest('[role="group"], .toolbar-button-row, .toolbar-button-group');
+              if (!group) {
+                continue;
+              }
+
+              var groupButtons = group.querySelectorAll('button, [role="button"], a');
+              var j;
+              var groupHasShareExport = false;
+              for (j = 0; j < groupButtons.length; j += 1) {
+                var groupNode = groupButtons[j];
+                var groupLabel = ((groupNode.getAttribute('aria-label') || '') + ' ' + (groupNode.textContent || '')).trim().toLowerCase();
+                if (groupLabel && isShareOrExportLabel(groupLabel)) {
+                  groupHasShareExport = true;
+                  break;
+                }
+              }
+
+              if (groupHasShareExport) {
+                node.style.display = 'none';
+              }
+            }
+          }
+        }
+
+        function hideInteractiveItem(node) {
+          if (!node) {
+            return;
+          }
+
+          var wrapper = node.closest('[role="menuitem"], li, button, a, [role="button"], [data-testid*="menu"], [class*="menu-item"]');
+          if (wrapper) {
+            wrapper.style.display = 'none';
+            return;
+          }
+
+          node.style.display = 'none';
+        }
+
+        function hideRestrictedPanelMenuOptions() {
+          var internalUser = isInternalUser();
+          var controls = document.querySelectorAll('button, [role="menuitem"], [role="button"], a, div, span');
+          var i;
+
+          for (i = 0; i < controls.length; i += 1) {
+            var node = controls[i];
+            var label = ((node.getAttribute('aria-label') || '') + ' ' + (node.textContent || '')).trim().toLowerCase();
+
+            if (!label) {
+              continue;
+            }
+
+            var hasShare = label === 'share' || label.indexOf('share panel') !== -1;
+            var hasInspect = label.indexOf('inspect') !== -1;
+            var hasQuery = label.indexOf('query') !== -1;
+            var hasJson = label.indexOf('panel json') !== -1;
+
+            if (hasShare) {
+              hideInteractiveItem(node);
+              continue;
+            }
+
+            if (
+              !internalUser &&
+              (
+                hasInspect ||
+                hasQuery ||
+                hasJson ||
+                label.indexOf('view json') !== -1
+              )
+            ) {
+              hideInteractiveItem(node);
+            }
+          }
+        }
+
+        function startHeadingRewriteLoop() {
+          if (rewriteTimer) {
+            return;
+          }
+
+          rewriteTimer = window.setInterval(function() {
+            replaceLoginHeadingText();
+          }, 250);
+        }
+
+        headingObserver = new MutationObserver(function() {
+          replaceLoginHeadingText();
+          replaceSidebarBrandText();
+          applyTideXAxisRotation();
+          hideDisallowedHeaderActions();
+          hideRestrictedPanelMenuOptions();
+          startHeadingRewriteLoop();
+        });
+
+        if (document.documentElement) {
+          headingObserver.observe(document.documentElement, { childList: true, subtree: true });
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            replaceLoginHeadingText();
+            replaceSidebarBrandText();
+            applyTideXAxisRotation();
+            hideDisallowedHeaderActions();
+            hideRestrictedPanelMenuOptions();
+            startHeadingRewriteLoop();
+          });
+        } else {
+          replaceLoginHeadingText();
+          replaceSidebarBrandText();
+          applyTideXAxisRotation();
+          hideDisallowedHeaderActions();
+          hideRestrictedPanelMenuOptions();
+          startHeadingRewriteLoop();
+        }
+
+        window.addEventListener('load', function() {
+          replaceLoginHeadingText();
+          replaceSidebarBrandText();
+          applyTideXAxisRotation();
+          hideDisallowedHeaderActions();
+          hideRestrictedPanelMenuOptions();
+          startHeadingRewriteLoop();
+        });
+
+        window.setTimeout(function() {
+          replaceLoginHeadingText();
+          replaceSidebarBrandText();
+          applyTideXAxisRotation();
+          hideDisallowedHeaderActions();
+          hideRestrictedPanelMenuOptions();
+        }, 2000);
+      })();
+
       window.grafanaBootData = {
         user: [[.User]],
         settings: [[.Settings]],

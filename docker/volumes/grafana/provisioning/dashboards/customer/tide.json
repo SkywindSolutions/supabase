@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "7-day tide forecast — forecast fields only. No observation or astronomical reference data. Customer-facing.",
+  "description": "Tide forecast — forecast fields only. No observation or astronomical reference data. Customer-facing.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -61,7 +61,7 @@
             "matcher": { "id": "byName", "options": "tidemean" },
             "properties": [
               { "id": "displayName", "value": "Tide (mean)" },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } },
               { "id": "custom.lineStyle", "value": { "fill": "solid" } },
               { "id": "custom.lineWidth", "value": 2 },
               { "id": "custom.fillOpacity", "value": 0 }
@@ -107,11 +107,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
-      "title": "Tide Forecast (7-day)",
+      "title": "Tide Forecast",
       "type": "timeseries"
     },
     {
@@ -131,7 +131,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 12, "w": 6, "x": 18, "y": 0 },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 4 },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -151,11 +151,54 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locid = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
       "title": "Current Tide (mean)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "description": "Reference datum used for the selected location's tide heights.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "noValue": "No datum",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "custom": { "hideFrom": { "tooltip": false, "viz": false, "legend": false } }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 5,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^datum$/i",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  datum\nFROM forecast_data\nWHERE\n  datum IS NOT NULL\n  AND tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Forecast Datum",
       "type": "stat"
     },
     {
@@ -194,8 +237,12 @@
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Last Updated" },
+            "matcher": { "id": "byName", "options": "Current Time" },
             "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Datum" },
+            "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }]
           }
         ]
       },
@@ -217,11 +264,73 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locid)\n  locid AS \"Location\",\n  timestamp AS \"Last Updated\",\n  tidemean AS \"Tide (mean)\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\nORDER BY locid, timestamp DESC",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Tide (mean)\",\n    datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Tide (mean)\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
           "refId": "A"
         }
       ],
-      "title": "Tide by Location (latest per location)",
+      "title": "Tide by Location (current interpolated)",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "description": "Tabular view of the full forecast shown in the tide chart.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "^Date" },
+            "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tide Mean" },
+            "properties": [{ "id": "unit", "value": "lengthft" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tide Upper Bound" },
+            "properties": [{ "id": "unit", "value": "lengthft" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tide Lower Bound" },
+            "properties": [{ "id": "unit", "value": "lengthft" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 19 },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Tide Mean\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Tide Forecast Data",
       "type": "table"
     }
   ],
@@ -247,7 +356,7 @@
         "label": "Group"
       },
       {
-        "current": { "text": "GFS", "value": "GFS" },
+        "current": { "text": "tide_astro", "value": "tide_astro" },
         "datasource": { "type": "postgres", "uid": "supabase-postgres" },
         "definition": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
         "hide": 2,
@@ -265,13 +374,13 @@
       {
         "current": { "text": "BOSTON_INNER", "value": "BOSTON_INNER" },
         "datasource": { "type": "postgres", "uid": "supabase-postgres" },
-        "definition": "SELECT DISTINCT locid FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
         "options": [],
-        "query": "SELECT DISTINCT locid FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -285,6 +394,6 @@
   "timezone": "browser",
   "title": "Tide Forecast",
   "uid": "customer-tide",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

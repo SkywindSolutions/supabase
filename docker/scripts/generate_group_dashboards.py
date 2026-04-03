@@ -62,6 +62,8 @@ GROUP_DISPLAY_NAMES: dict[str, str] = {
     "grp_gloucester": "Gloucester MA Forecasts",
     "group_alpha":    "Alpha Maritime Forecasts",
     "group_beta":     "Beta Offshore Forecasts",
+    "grp_portrichey": "Port Richey Forecasts",
+    "grp_clearwater": "Clearwater Forecasts",
 }
 
 # Data-type → primary column used to detect whether a group has that data
@@ -71,11 +73,20 @@ DATA_TYPE_COLUMNS: dict[str, str] = {
     "tide":       "tidemean",
 }
 
+
 # Template filename → data type
 TEMPLATE_NAMES: dict[str, str] = {
     "visibility.json": "visibility",
     "wind.json":       "wind",
     "tide.json":       "tide",
+}
+
+# Per-group, per-dashboard default model mapping
+# Example: {"grp_portrichey": {"tide": "tide_astro", "wind": "gfs", "visibility": "vis_model1"}, ...}
+DEFAULT_MODEL: dict[str, dict[str, str]] = {
+    "grp_portrichey": {"tide": "tide_astro"},
+    "grp_clearwater": {"tide": "tide_astro"},
+    # Add group-specific defaults here as needed
 }
 
 
@@ -142,6 +153,58 @@ def discover_groups(conn_str: str) -> dict[str, set[str]]:
     return result
 
 
+def discover_selected_groups(conn_str: str, groups: list[str]) -> dict[str, set[str]]:
+    """
+    Query the database for a fixed list of groups and return data types that
+    have at least one non-NULL row for each group.
+
+    Returns:
+        {group_id: {data_type, ...}, ...}
+    """
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        log.error(
+            "psycopg2 is not installed.  Install it with: pip install psycopg2-binary"
+        )
+        sys.exit(1)
+
+    if not groups:
+        return {}
+
+    checks = " ".join(
+        f"COUNT({col}) > 0  AS has_{dtype},"
+        for dtype, col in DATA_TYPE_COLUMNS.items()
+    ).rstrip(",")
+
+    sql = f"""
+        SELECT group_id, {checks}
+        FROM public.forecast_data
+        WHERE group_id = ANY(%s)
+        GROUP BY group_id
+        ORDER BY group_id;
+    """
+
+    result: dict[str, set[str]] = {group_id: set() for group_id in groups}
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (groups,))
+                for row in cur.fetchall():
+                    group_id = row[0]
+                    dtypes: set[str] = set()
+                    for i, dtype in enumerate(DATA_TYPE_COLUMNS.keys()):
+                        if row[i + 1]:
+                            dtypes.add(dtype)
+                    result[group_id] = dtypes
+    except Exception as exc:
+        log.error("Database query failed: %s", exc)
+        sys.exit(1)
+
+    return result
+
+
 def sanitise_folder_uid(group_id: str) -> str:
     """Convert a group_id to a safe Grafana folder UID (max 40 chars)."""
     uid = re.sub(r"[^a-zA-Z0-9\-]", "-", group_id)
@@ -189,6 +252,7 @@ def make_group_dashboard(
         v for v in d["templating"]["list"] if v.get("name") != "group"
     ]
 
+
     # -- Hardcode group_id in the `location` variable query ------------------
     for var in d["templating"]["list"]:
         if var.get("name") == "location":
@@ -199,8 +263,16 @@ def make_group_dashboard(
                         "group_id = '$group'",
                         f"group_id = '{group_id}'",
                     )
-        # Clear the cached current value so Grafana picks the first real result
-        var.pop("current", None)
+        # Set the default for the model variable if specified
+        if var.get("name") == "model":
+            default_model = DEFAULT_MODEL.get(group_id, {}).get(dtype)
+            if default_model:
+                var["current"] = {"text": default_model, "value": default_model}
+            else:
+                var.pop("current", None)
+        else:
+            # Clear the cached current value so Grafana picks the first real result
+            var.pop("current", None)
         var.pop("options", None)
 
     # -- Hardcode group_id in all panel SQL ----------------------------------
@@ -248,8 +320,8 @@ def write_dashboards_yaml(
         "# Two base providers (Internal / Customer reference) plus one provider",
         "# per customer group, each isolated in its own Grafana folder.",
         "#",
-        "# disableDeletion: true  — dashboard is not removed if the JSON file is",
-        "#                          deleted (protects against accidental removal).",
+        "# disableDeletion: false — dashboard is removed when the JSON file is",
+        "#                          deleted (keeps provisioned folders in sync).",
         "# editable: false        — changes made in the UI are not saved to disk.",
         "",
         "apiVersion: 1",
@@ -309,7 +381,7 @@ def write_dashboards_yaml(
             f"    folder: {display_name}",
             f"    folderUid: {folder_uid}",
             "    type: file",
-            "    disableDeletion: true",
+            "    disableDeletion: false",
             "    editable: false",
             "    updateIntervalSeconds: 30",
             "    options:",
@@ -342,7 +414,10 @@ def main() -> None:
     parser.add_argument(
         "--groups",
         default=None,
-        help="Comma-separated group_ids to process (skips DB query, all data types assumed).",
+        help=(
+            "Comma-separated group_ids to process. "
+            "Data types are discovered from DB rows for each listed group."
+        ),
     )
     parser.add_argument(
         "--group-types-json",
@@ -398,11 +473,15 @@ def main() -> None:
         raw = json.loads(args.group_types_json)
         group_dtypes: dict[str, set[str]] = {k: set(v) for k, v in raw.items()}
     elif args.groups:
-        # Manual list — assume all data types present
-        group_dtypes: dict[str, set[str]] = {
-            g.strip(): set(DATA_TYPE_COLUMNS.keys())
-            for g in args.groups.split(",")
-        }
+        selected_groups = [g.strip() for g in args.groups.split(",") if g.strip()]
+        conn_str = args.db_url or (
+            f"postgresql://postgres:{postgres_password}@127.0.0.1:5432/postgres"
+        )
+        log.info(
+            "Discovering data types for selected groups from DB: %s",
+            conn_str.split("@")[-1],
+        )
+        group_dtypes = discover_selected_groups(conn_str, selected_groups)
     else:
         conn_str = args.db_url or (
             f"postgresql://postgres:{postgres_password}@127.0.0.1:5432/postgres"

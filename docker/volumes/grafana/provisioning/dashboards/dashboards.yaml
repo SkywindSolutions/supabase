@@ -5,8 +5,8 @@
 # Two base providers (Internal / Customer reference) plus one provider
 # per customer group, each isolated in its own Grafana folder.
 #
-# disableDeletion: true  — dashboard is not removed if the JSON file is
-#                          deleted (protects against accidental removal).
+# disableDeletion: false — dashboard is removed when the JSON file is
+#                          deleted (keeps provisioned folders in sync).
 # editable: false        — changes made in the UI are not saved to disk.
 
 apiVersion: 1
@@ -56,7 +56,7 @@ providers:
     folder: Boston Inner Harbor Forecasts
     folderUid: cust-grp-boston
     type: file
-    disableDeletion: true
+    disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
@@ -68,11 +68,23 @@ providers:
     folder: Cape Cod Bay Forecasts
     folderUid: cust-grp-cape-cod
     type: file
-    disableDeletion: true
+    disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_cape_cod
+
+  # Clearwater Forecasts (tide)
+  - name: Clearwater Forecasts
+    orgId: 1
+    folder: Clearwater Forecasts
+    folderUid: cust-grp-clearwater
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_clearwater
 
   # Gloucester MA Forecasts (tide, visibility, wind)
   - name: Gloucester MA Forecasts
@@ -80,7 +92,7 @@ providers:
     folder: Gloucester MA Forecasts
     folderUid: cust-grp-gloucester
     type: file
-    disableDeletion: true
+    disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
@@ -92,8 +104,20 @@ providers:
     folder: Portland ME Forecasts
     folderUid: cust-grp-portland
     type: file
-    disableDeletion: true
+    disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_portland
+
+  # Port Richey Forecasts (tide)
+  - name: Port Richey Forecasts
+    orgId: 1
+    folder: Port Richey Forecasts
+    folderUid: cust-grp-portrichey
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_portrichey
