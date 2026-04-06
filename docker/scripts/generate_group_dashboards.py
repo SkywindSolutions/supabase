@@ -205,6 +205,37 @@ def discover_selected_groups(conn_str: str, groups: list[str]) -> dict[str, set[
     return result
 
 
+def count_group_locations(conn_str: str, group_id: str, dtype: str) -> int:
+    """
+    Count the number of unique locations for a group and data type.
+    Returns the count, or -1 on error (non-fatal).
+    """
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return -1
+
+    col = DATA_TYPE_COLUMNS.get(dtype)
+    if not col:
+        return -1
+
+    sql = f"""
+        SELECT COUNT(DISTINCT locname)
+        FROM public.forecast_data
+        WHERE group_id = %s AND {col} IS NOT NULL;
+    """
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id,))
+                row = cur.fetchone()
+                return row[0] if row else 0
+    except Exception as exc:
+        log.warning("Failed to count locations for %s/%s: %s", group_id, dtype, exc)
+        return -1
+
+
 def sanitise_folder_uid(group_id: str) -> str:
     """Convert a group_id to a safe Grafana folder UID (max 40 chars)."""
     uid = re.sub(r"[^a-zA-Z0-9\-]", "-", group_id)
@@ -216,6 +247,7 @@ def make_group_dashboard(
     group_id: str,
     dtype: str,
     display_name: str,
+    location_count: int = -1,
 ) -> dict:
     """
     Transform a shared customer dashboard template into a group-specific
@@ -226,6 +258,8 @@ def make_group_dashboard(
     - Hardcode group_id in the `location` variable query
     - Hardcode group_id in every panel's rawSql
     - Update uid, title, and description
+    - For tide dashboards with only 1 location: remove "Tide by Location" panel
+      and adjust "Current Tide" panel positioning to sit next to Tide Forecast Data
     """
     d = copy.deepcopy(template)
 
@@ -277,6 +311,22 @@ def make_group_dashboard(
 
     # -- Hardcode group_id in all panel SQL ----------------------------------
     _patch_group_id(d.get("panels", []), group_id)
+
+    # -- Filter panels for single-location groups (tide only) -----------------
+    if dtype == "tide" and location_count == 1:
+        panels = d.get("panels", [])
+        # Remove Tide by Location panel
+        panels = [p for p in panels if not str(p.get("title", "")).startswith("Tide by Location")]
+        d["panels"] = panels
+        # Adjust Current Tide panel position: move to x=0 and position next to or below Tide Forecast Data
+        # Find the Tide Forecast Data panel to position Current Tide appropriately
+        for panel in panels:
+            if str(panel.get("title", "")).startswith("Current Tide"):
+                # Position Current Tide at x=18, next to where Tide by Location would be (on the same y as Tide Forecast Data)
+                grid = panel.get("gridPos", {})
+                grid["x"] = 18
+                grid["w"] = 6
+                break
 
     return d
 
@@ -493,6 +543,11 @@ def main() -> None:
         log.warning("No groups found.  Nothing to generate.")
         return
 
+    # Build connection string once for location count queries
+    conn_str = args.db_url or (
+        f"postgresql://postgres:{postgres_password}@127.0.0.1:5432/postgres"
+    )
+
     log.info("Groups discovered: %s", list(group_dtypes.keys()))
 
     # -- Generate dashboards --------------------------------------------------
@@ -524,8 +579,11 @@ def main() -> None:
                 log.warning("  [%s] no template for %s, skipping", group_id, dtype)
                 continue
 
+            # Query location count for panel filtering (especially for tide dashboards)
+            location_count = -1 if args.dry_run else count_group_locations(conn_str, group_id, dtype)
+
             dash = make_group_dashboard(
-                templates[dtype], group_id, dtype, display_name
+                templates[dtype], group_id, dtype, display_name, location_count=location_count
             )
             out_file = group_dir / f"{dtype}.json"
 

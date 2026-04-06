@@ -40,6 +40,7 @@ services:
       GF_SNAPSHOTS_ENABLED: "false"
       GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
       GF_PUBLIC_DASHBOARDS_ENABLED: "false"
+      GF_USERS_DEFAULT_THEME: system
       # Format hourly x-axis labels as Tue 04/07 06 PM.
       GF_DATE_FORMATS_INTERVAL_HOUR: "ddd MM/DD hh A"
       # Exposed for datasource provisioning variable substitution
