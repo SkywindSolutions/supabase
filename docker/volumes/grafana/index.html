@@ -61,6 +61,16 @@
         max-width: 360px !important;
         height: auto !important;
       }
+      /* Keep the footer logo small — override the login-page enlargement above. */
+      #skywind-kiosk-footer img {
+        width: auto !important;
+        max-width: 200px !important;
+        height: 32px !important;
+      }
+      /* Hide Grafana's built-in kiosk footer so only the custom Skywind one shows. */
+      [data-testid="public-dashboard-footer"] {
+        display: none !important;
+      }
       /* Rotation is applied by JS so it works even where :has support is inconsistent. */
     </style>
   </head>
@@ -602,6 +612,764 @@
 
       // FEMT index.html uses this, and we want to keep the index.ts the same for both
       window.__grafana_boot_data_promise = Promise.resolve();
+
+      // --- Kiosk enforcement for customer accounts ---
+      // Viewer-role users (customers) are locked into Grafana's kiosk mode.
+      // Runs synchronously before React bundles load so the redirect fires
+      // before any non-kiosk UI is rendered.
+      (function() {
+        var user = window.grafanaBootData && window.grafanaBootData.user;
+        if (!user || !user.isSignedIn) return;
+
+        // Reason: internal staff (Admin/Editor/GrafanaAdmin) keep the normal UI.
+        var role = (user.orgRole || '').toLowerCase();
+        if (user.isGrafanaAdmin || role === 'admin' || role === 'editor') return;
+
+        var loc = window.location;
+
+        // Redirect to kiosk mode if the param is missing.
+        if (loc.search.indexOf('kiosk') === -1) {
+          var sep = loc.search ? '&' : '?';
+          loc.replace(loc.pathname + loc.search + sep + 'kiosk' + loc.hash);
+          return; // page will reload — stop here
+        }
+
+        // Block ESC key from exiting kiosk mode (capture phase, first handler).
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' || e.keyCode === 27) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+
+        // Intercept History API so SPA navigation preserves the kiosk param.
+        var origPush = history.pushState;
+        var origReplace = history.replaceState;
+
+        function ensureKiosk(url) {
+          if (url == null) return url;
+          var s = String(url);
+          if (s.indexOf('kiosk') !== -1) return s;
+          var hashIdx = s.indexOf('#');
+          var base = hashIdx === -1 ? s : s.substring(0, hashIdx);
+          var hash = hashIdx === -1 ? '' : s.substring(hashIdx);
+          var sep = base.indexOf('?') === -1 ? '?' : '&';
+          return base + sep + 'kiosk' + hash;
+        }
+
+        history.pushState = function(state, title, url) {
+          return origPush.call(this, state, title, ensureKiosk(url));
+        };
+        history.replaceState = function(state, title, url) {
+          return origReplace.call(this, state, title, ensureKiosk(url));
+        };
+
+        // Handle back/forward navigation.
+        window.addEventListener('popstate', function() {
+          if (window.location.search.indexOf('kiosk') === -1) {
+            var l = window.location;
+            var sep = l.search ? '&' : '?';
+            l.replace(l.pathname + l.search + sep + 'kiosk' + l.hash);
+          }
+        });
+
+        // Inject "Powered by Skywind Solutions" footer bar in kiosk mode.
+        function injectKioskFooter() {
+          if (document.getElementById('skywind-kiosk-footer')) return;
+
+          var btnBase = 'font-family:sans-serif;font-size:11px;background:none;border:none;'
+            + 'color:rgba(255,255,255,0.55);cursor:pointer;padding:4px 8px;pointer-events:auto;';
+          var btnHover = 'color:rgba(255,255,255,0.9);';
+
+          function makeBtn(text) {
+            var b = document.createElement('button');
+            b.textContent = text;
+            b.style.cssText = btnBase;
+            b.addEventListener('mouseenter', function() { b.style.color = 'rgba(255,255,255,0.9)'; });
+            b.addEventListener('mouseleave', function() { b.style.color = 'rgba(255,255,255,0.55)'; });
+            return b;
+          }
+
+          // --- Footer container ---
+          var footer = document.createElement('div');
+          footer.id = 'skywind-kiosk-footer';
+          footer.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:40px;'
+            + 'display:flex;align-items:center;justify-content:space-between;'
+            + 'background:rgba(13,18,24,0.85);border-top:1px solid rgba(255,255,255,0.08);'
+            + 'z-index:10000;pointer-events:none;padding:0 16px;box-sizing:border-box;';
+
+          // --- Left spacer (balances the right-side buttons) ---
+          var spacer = document.createElement('div');
+          spacer.style.cssText = 'flex:1;';
+
+          // --- Center branding ---
+          var center = document.createElement('div');
+          center.style.cssText = 'display:flex;align-items:center;gap:6px;';
+          var label = document.createElement('span');
+          label.textContent = 'Powered by';
+          label.style.cssText = 'font-family:sans-serif;font-size:11px;color:rgba(255,255,255,0.5);';
+          var logo = document.createElement('img');
+          logo.src = 'public/build/img/grafana_text_logo_dark.svg';
+          logo.alt = 'Skywind Solutions';
+          logo.style.cssText = 'height:22px;opacity:0.7;';
+          center.appendChild(label);
+          center.appendChild(logo);
+
+          // --- Right-side actions ---
+          var actions = document.createElement('div');
+          actions.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:flex-end;gap:4px;';
+
+          // Change Password button
+          var pwBtn = makeBtn('Change Password');
+          pwBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showPasswordModal();
+          });
+
+          // Sign Out button
+          var outBtn = makeBtn('Sign Out');
+          outBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window.location.href = '/logout';
+          });
+
+          actions.appendChild(pwBtn);
+          actions.appendChild(outBtn);
+
+          footer.appendChild(spacer);
+          footer.appendChild(center);
+          footer.appendChild(actions);
+          document.body.appendChild(footer);
+        }
+
+        // --- Change Password Modal ---
+        function showPasswordModal() {
+          if (document.getElementById('skywind-pw-modal')) return;
+
+          var inputStyle = 'width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.15);'
+            + 'border-radius:4px;background:rgba(255,255,255,0.06);color:#ddd;'
+            + 'font-size:13px;box-sizing:border-box;outline:none;';
+
+          // Overlay
+          var overlay = document.createElement('div');
+          overlay.id = 'skywind-pw-modal';
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);'
+            + 'display:flex;align-items:center;justify-content:center;z-index:10001;';
+
+          // Dialog
+          var dialog = document.createElement('div');
+          dialog.style.cssText = 'background:#1a1f29;border:1px solid rgba(255,255,255,0.12);'
+            + 'border-radius:8px;padding:24px;width:340px;max-width:90vw;'
+            + 'font-family:sans-serif;color:#ddd;pointer-events:auto;';
+
+          // Title
+          var title = document.createElement('h3');
+          title.textContent = 'Change Password';
+          title.style.cssText = 'margin:0 0 16px;font-size:16px;font-weight:600;color:#eee;';
+
+          // Fields
+          function makeField(labelText) {
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'margin-bottom:12px;';
+            var lbl = document.createElement('label');
+            lbl.textContent = labelText;
+            lbl.style.cssText = 'display:block;font-size:12px;margin-bottom:4px;color:rgba(255,255,255,0.6);';
+            var inp = document.createElement('input');
+            inp.type = 'password';
+            inp.style.cssText = inputStyle;
+            wrap.appendChild(lbl);
+            wrap.appendChild(inp);
+            return { wrap: wrap, input: inp };
+          }
+
+          var oldPw = makeField('Current Password');
+          var newPw = makeField('New Password');
+          var confirmPw = makeField('Confirm New Password');
+
+          // Status message
+          var status = document.createElement('div');
+          status.style.cssText = 'font-size:12px;margin-bottom:12px;min-height:16px;';
+
+          // Button row
+          var btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+          var cancelBtn = document.createElement('button');
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.style.cssText = 'padding:6px 16px;border:1px solid rgba(255,255,255,0.15);'
+            + 'border-radius:4px;background:none;color:#ddd;cursor:pointer;font-size:13px;';
+
+          var saveBtn = document.createElement('button');
+          saveBtn.textContent = 'Save';
+          saveBtn.style.cssText = 'padding:6px 16px;border:none;border-radius:4px;'
+            + 'background:#3274d9;color:#fff;cursor:pointer;font-size:13px;';
+
+          function closeModal() {
+            var m = document.getElementById('skywind-pw-modal');
+            if (m) m.remove();
+          }
+
+          cancelBtn.addEventListener('click', closeModal);
+          overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+          });
+
+          saveBtn.addEventListener('click', function() {
+            var oldVal = oldPw.input.value;
+            var newVal = newPw.input.value;
+            var confirmVal = confirmPw.input.value;
+
+            if (!oldVal || !newVal || !confirmVal) {
+              status.textContent = 'All fields are required.';
+              status.style.color = '#ff5705';
+              return;
+            }
+            if (newVal !== confirmVal) {
+              status.textContent = 'New passwords do not match.';
+              status.style.color = '#ff5705';
+              return;
+            }
+            if (newVal.length < 4) {
+              status.textContent = 'New password must be at least 4 characters.';
+              status.style.color = '#ff5705';
+              return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+            status.textContent = '';
+
+            // Reason: use Grafana's user API so we never navigate away from kiosk mode.
+            fetch('/api/user/password', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPassword: oldVal, newPassword: newVal })
+            })
+            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+            .then(function(res) {
+              if (res.ok) {
+                status.textContent = 'Password changed successfully.';
+                status.style.color = '#6ccf59';
+                setTimeout(closeModal, 1500);
+              } else {
+                status.textContent = res.data.message || 'Failed to change password.';
+                status.style.color = '#ff5705';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+              }
+            })
+            .catch(function() {
+              status.textContent = 'Network error. Please try again.';
+              status.style.color = '#ff5705';
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Save';
+            });
+          });
+
+          btnRow.appendChild(cancelBtn);
+          btnRow.appendChild(saveBtn);
+
+          dialog.appendChild(title);
+          dialog.appendChild(oldPw.wrap);
+          dialog.appendChild(newPw.wrap);
+          dialog.appendChild(confirmPw.wrap);
+          dialog.appendChild(status);
+          dialog.appendChild(btnRow);
+          overlay.appendChild(dialog);
+          document.body.appendChild(overlay);
+
+          // Focus the first field.
+          oldPw.input.focus();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', injectKioskFooter);
+        } else {
+          injectKioskFooter();
+        }
+      })();
+
+      // --- SMS Alert Settings (admin-only for now) ---
+      // Reason: gated to Admin/Editor roles so customers don't see it until
+      // the feature is verified end-to-end with Twilio.
+      (function() {
+        var user = window.grafanaBootData && window.grafanaBootData.user;
+        if (!user || !user.isSignedIn) return;
+
+        var role = (user.orgRole || '').toLowerCase();
+        var isAdmin = user.isGrafanaAdmin || role === 'admin' || role === 'editor';
+        // Reason: allow specific test accounts to access alerts before general rollout.
+        var alertTestUsers = ['test_portrichey'];
+        var isAlertTester = alertTestUsers.indexOf(user.login) !== -1;
+        if (!isAdmin && !isAlertTester) return;
+
+        // --- Floating trigger button ---
+        function injectAlertButton() {
+          if (document.getElementById('skywind-alert-btn')) return;
+
+          var btn = document.createElement('button');
+          btn.id = 'skywind-alert-btn';
+          btn.textContent = '\u{1F514} Alert Settings';
+          btn.style.cssText = 'position:fixed;bottom:56px;right:16px;z-index:9999;'
+            + 'font-family:sans-serif;font-size:13px;padding:8px 16px;'
+            + 'background:#3274d9;color:#fff;border:none;border-radius:6px;'
+            + 'cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+          btn.addEventListener('mouseenter', function() { btn.style.background = '#4a8ae6'; });
+          btn.addEventListener('mouseleave', function() { btn.style.background = '#3274d9'; });
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showAlertModal();
+          });
+          document.body.appendChild(btn);
+        }
+
+        // --- Shared styles ---
+        var modalInputStyle = 'width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.15);'
+          + 'border-radius:4px;background:rgba(255,255,255,0.06);color:#ddd;'
+          + 'font-size:13px;box-sizing:border-box;outline:none;';
+
+        // Reason: select elements need explicit height and line-height so the
+        // selected value is visible inside the dark-themed dropdown.
+        var modalSelectStyle = 'width:100%;height:40px;line-height:40px;padding:0 10px;'
+          + 'border:1px solid rgba(255,255,255,0.15);border-radius:4px;'
+          + 'background:rgba(255,255,255,0.06);color:#ddd;font-size:14px;'
+          + 'box-sizing:border-box;outline:none;appearance:auto;-webkit-appearance:menulist;';
+
+        // --- Alert Settings Modal ---
+        function showAlertModal() {
+          if (document.getElementById('skywind-alert-modal')) return;
+
+          var overlay = document.createElement('div');
+          overlay.id = 'skywind-alert-modal';
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);'
+            + 'display:flex;align-items:center;justify-content:center;z-index:10001;';
+
+          var dialog = document.createElement('div');
+          dialog.style.cssText = 'background:#1a1f29;border:1px solid rgba(255,255,255,0.12);'
+            + 'border-radius:8px;padding:24px;width:560px;max-width:90vw;max-height:85vh;'
+            + 'overflow-y:auto;font-family:sans-serif;color:#ddd;pointer-events:auto;';
+
+          var title = document.createElement('h3');
+          title.textContent = 'SMS Alert Settings';
+          title.style.cssText = 'margin:0 0 16px;font-size:16px;font-weight:600;color:#eee;';
+
+          // Status message area
+          var status = document.createElement('div');
+          status.style.cssText = 'font-size:12px;margin-bottom:12px;min-height:16px;';
+
+          // Reason: tracks whether user belongs to a single group so we can
+          // hide group-related UI elements throughout the modal.
+          var singleGroup = false;
+
+          // --- Existing subscriptions list ---
+          var listContainer = document.createElement('div');
+          listContainer.id = 'skywind-alert-list';
+          listContainer.style.cssText = 'margin-bottom:16px;';
+
+          // --- New subscription form ---
+          var formTitle = document.createElement('h4');
+          formTitle.textContent = 'New Alert';
+          formTitle.style.cssText = 'margin:0 0 12px;font-size:14px;font-weight:600;color:#ccc;';
+
+          function makeFormField(labelText, type) {
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'margin-bottom:10px;';
+            var lbl = document.createElement('label');
+            lbl.textContent = labelText;
+            lbl.style.cssText = 'display:block;font-size:12px;margin-bottom:4px;color:rgba(255,255,255,0.6);';
+            var inp;
+            if (type === 'select') {
+              inp = document.createElement('select');
+              inp.style.cssText = modalSelectStyle;
+              // Reason: ensure option text is visible in dark-themed dropdowns.
+              inp.addEventListener('focus', function() {
+                var opts = inp.querySelectorAll('option');
+                for (var i = 0; i < opts.length; i++) {
+                  opts[i].style.cssText = 'background:#1a1f29;color:#ddd;';
+                }
+              });
+            } else {
+              inp = document.createElement('input');
+              inp.type = type || 'text';
+              inp.style.cssText = modalInputStyle;
+            }
+            wrap.appendChild(lbl);
+            wrap.appendChild(inp);
+            return { wrap: wrap, input: inp };
+          }
+
+          var groupField = makeFormField('Group', 'select');
+          var locationField = makeFormField('Location', 'select');
+          var phoneField = makeFormField('Phone Number (E.164, e.g. +15551234567)', 'tel');
+          var typeField = makeFormField('Alert When Tide Goes...', 'select');
+          var thresholdField = makeFormField('Threshold Value (ft)', 'number');
+          var cooldownField = makeFormField('Minimum Time Between Alerts', 'select');
+
+          // Populate cooldown options
+          var cooldownOptions = [
+            { value: '30', label: '30 minutes' },
+            { value: '60', label: '1 hour' },
+            { value: '120', label: '2 hours' },
+            { value: '360', label: '6 hours' },
+            { value: '720', label: '12 hours' },
+            { value: '1440', label: '24 hours' },
+            { value: '2880', label: '48 hours' }
+          ];
+          cooldownOptions.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.value;
+            opt.textContent = c.label;
+            if (c.value === '60') opt.selected = true;
+            cooldownField.input.appendChild(opt);
+          });
+
+          // Quiet hours
+          var quietStartField = makeFormField('Quiet Hours Start (24h, e.g. 22:00)', 'time');
+          var quietEndField = makeFormField('Quiet Hours End (24h, e.g. 06:00)', 'time');
+          // Reason: wrap quiet hours in a fieldset-like container for visual grouping.
+          var quietWrap = document.createElement('div');
+          quietWrap.style.cssText = 'margin-bottom:10px;padding:8px 10px;border:1px solid rgba(255,255,255,0.08);border-radius:4px;';
+          var quietLabel = document.createElement('div');
+          quietLabel.textContent = 'Quiet Hours (optional — no alerts sent during this window)';
+          quietLabel.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px;';
+          var quietRow = document.createElement('div');
+          quietRow.style.cssText = 'display:flex;gap:10px;';
+          quietStartField.wrap.style.cssText = 'flex:1;margin-bottom:0;';
+          quietEndField.wrap.style.cssText = 'flex:1;margin-bottom:0;';
+          quietRow.appendChild(quietStartField.wrap);
+          quietRow.appendChild(quietEndField.wrap);
+          quietWrap.appendChild(quietLabel);
+          quietWrap.appendChild(quietRow);
+
+          // Populate alert type dropdown
+          var optAbove = document.createElement('option');
+          optAbove.value = 'above'; optAbove.textContent = 'Above threshold';
+          var optBelow = document.createElement('option');
+          optBelow.value = 'below'; optBelow.textContent = 'Below threshold';
+          typeField.input.appendChild(optAbove);
+          typeField.input.appendChild(optBelow);
+
+          // Fetch groups and populate dropdown
+          function loadGroups() {
+            fetch('/api/alerts/groups', { credentials: 'include' })
+              .then(function(r) { return r.json(); })
+              .then(function(groups) {
+                groupField.input.innerHTML = '';
+                if (groups.length !== 1) {
+                  var placeholder = document.createElement('option');
+                  placeholder.value = '';
+                  placeholder.textContent = '-- Select group --';
+                  groupField.input.appendChild(placeholder);
+                }
+                groups.forEach(function(g) {
+                  var opt = document.createElement('option');
+                  opt.value = g;
+                  opt.textContent = g;
+                  groupField.input.appendChild(opt);
+                });
+                // Reason: single-group users don't need to see the group field at all.
+                if (groups.length === 1) {
+                  singleGroup = true;
+                  groupField.wrap.style.display = 'none';
+                  groupField.input.value = groups[0];
+                  groupField.input.dispatchEvent(new Event('change'));
+                }
+              })
+              .catch(function() {
+                status.textContent = 'Failed to load groups.';
+                status.style.color = '#ff5705';
+              });
+          }
+
+          // Fetch locations when group changes
+          groupField.input.addEventListener('change', function() {
+            var gid = groupField.input.value;
+            locationField.input.innerHTML = '';
+            if (!gid) return;
+
+            fetch('/api/alerts/locations?group_id=' + encodeURIComponent(gid), { credentials: 'include' })
+              .then(function(r) { return r.json(); })
+              .then(function(locs) {
+                locationField.input.innerHTML = '';
+                if (locs.length !== 1) {
+                  var ph = document.createElement('option');
+                  ph.value = '';
+                  ph.textContent = '-- Select location --';
+                  locationField.input.appendChild(ph);
+                }
+                locs.forEach(function(loc) {
+                  var opt = document.createElement('option');
+                  opt.value = loc.locid;
+                  opt.textContent = loc.locname || loc.locid;
+                  opt.dataset.locname = loc.locname || '';
+                  locationField.input.appendChild(opt);
+                });
+                // Reason: auto-select when user has access to only 1 location.
+                if (locs.length === 1) {
+                  locationField.input.value = locs[0].locid;
+                }
+              })
+              .catch(function() {
+                status.textContent = 'Failed to load locations.';
+                status.style.color = '#ff5705';
+              });
+          });
+
+          // --- Button row ---
+          var btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin-top:8px;';
+
+          var cancelBtn = document.createElement('button');
+          cancelBtn.textContent = 'Close';
+          cancelBtn.style.cssText = 'padding:6px 16px;border:1px solid rgba(255,255,255,0.15);'
+            + 'border-radius:4px;background:none;color:#ddd;cursor:pointer;font-size:13px;';
+
+          var addBtn = document.createElement('button');
+          addBtn.textContent = 'Add Alert';
+          addBtn.style.cssText = 'padding:6px 16px;border:none;border-radius:4px;'
+            + 'background:#3274d9;color:#fff;cursor:pointer;font-size:13px;';
+
+          function closeModal() {
+            var m = document.getElementById('skywind-alert-modal');
+            if (m) m.remove();
+          }
+
+          cancelBtn.addEventListener('click', closeModal);
+          overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+          });
+
+          // --- Load existing subscriptions ---
+          function loadSubscriptions() {
+            listContainer.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.4);">Loading...</div>';
+
+            fetch('/api/alerts/subscriptions', { credentials: 'include' })
+              .then(function(r) { return r.json(); })
+              .then(function(subs) {
+                listContainer.innerHTML = '';
+                if (!subs.length) {
+                  listContainer.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px;">No alert subscriptions yet.</div>';
+                  return;
+                }
+
+                var table = document.createElement('table');
+                table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;';
+
+                var thead = document.createElement('thead');
+                var headerRow = document.createElement('tr');
+                var headers = singleGroup
+                  ? ['Location', 'Type', 'Threshold', 'Cooldown', 'Quiet Hours', 'Phone', 'Enabled', '']
+                  : ['Group', 'Location', 'Type', 'Threshold', 'Cooldown', 'Quiet Hours', 'Phone', 'Enabled', ''];
+                headers.forEach(function(h) {
+                  var th = document.createElement('th');
+                  th.textContent = h;
+                  th.style.cssText = 'text-align:left;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-weight:500;';
+                  headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                var tbody = document.createElement('tbody');
+                subs.forEach(function(sub) {
+                  var tr = document.createElement('tr');
+                  tr.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.05);';
+
+                  // Reason: format cooldown as human-readable duration.
+                  var cdMin = sub.cooldown_minutes || 60;
+                  var cdText = cdMin >= 1440 ? (cdMin / 1440) + 'd'
+                             : cdMin >= 60 ? (cdMin / 60) + 'h'
+                             : cdMin + 'min';
+                  var quietText = sub.quiet_start && sub.quiet_end
+                    ? sub.quiet_start + ' – ' + sub.quiet_end : '—';
+
+                  var cells = singleGroup
+                    ? [
+                        sub.location_name || sub.location_id,
+                        sub.alert_type,
+                        sub.threshold_value + ' ft',
+                        cdText,
+                        quietText,
+                        sub.phone_number,
+                        sub.enabled ? 'Yes' : 'No'
+                      ]
+                    : [
+                        sub.group_id,
+                        sub.location_name || sub.location_id,
+                        sub.alert_type,
+                        sub.threshold_value + ' ft',
+                        cdText,
+                        quietText,
+                        sub.phone_number,
+                        sub.enabled ? 'Yes' : 'No'
+                      ];
+
+                  cells.forEach(function(val) {
+                    var td = document.createElement('td');
+                    td.textContent = val;
+                    td.style.cssText = 'padding:6px 4px;color:#ccc;';
+                    tr.appendChild(td);
+                  });
+
+                  // Actions cell
+                  var actTd = document.createElement('td');
+                  actTd.style.cssText = 'padding:6px 4px;';
+
+                  var toggleBtn = document.createElement('button');
+                  toggleBtn.textContent = sub.enabled ? 'Disable' : 'Enable';
+                  toggleBtn.style.cssText = 'font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,0.15);'
+                    + 'border-radius:3px;background:none;color:#ddd;cursor:pointer;margin-right:4px;';
+                  toggleBtn.addEventListener('click', function() {
+                    fetch('/api/alerts/subscriptions/' + sub.id, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ enabled: !sub.enabled })
+                    }).then(function() { loadSubscriptions(); });
+                  });
+
+                  var delBtn = document.createElement('button');
+                  delBtn.textContent = 'Delete';
+                  delBtn.style.cssText = 'font-size:11px;padding:2px 8px;border:1px solid rgba(255,85,5,0.4);'
+                    + 'border-radius:3px;background:none;color:#ff5705;cursor:pointer;';
+                  delBtn.addEventListener('click', function() {
+                    if (!confirm('Delete this alert subscription?')) return;
+                    fetch('/api/alerts/subscriptions/' + sub.id, {
+                      method: 'DELETE',
+                      credentials: 'include'
+                    }).then(function() { loadSubscriptions(); });
+                  });
+
+                  actTd.appendChild(toggleBtn);
+                  actTd.appendChild(delBtn);
+                  tr.appendChild(actTd);
+                  tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                listContainer.appendChild(table);
+              })
+              .catch(function() {
+                listContainer.innerHTML = '<div style="font-size:12px;color:#ff5705;">Failed to load subscriptions.</div>';
+              });
+          }
+
+          // --- Add subscription handler ---
+          addBtn.addEventListener('click', function() {
+            var gid = groupField.input.value;
+            var locOpt = locationField.input.selectedOptions[0];
+            var locId = locationField.input.value;
+            var locName = locOpt ? (locOpt.dataset.locname || locOpt.textContent) : '';
+            var phone = phoneField.input.value.trim();
+            var alertType = typeField.input.value;
+            var threshold = thresholdField.input.value;
+
+            if (!gid || !locId || !phone || !threshold) {
+              status.textContent = 'All fields are required.';
+              status.style.color = '#ff5705';
+              return;
+            }
+
+            if (!consentCb.checked) {
+              status.textContent = 'You must agree to the SMS Alert Terms.';
+              status.style.color = '#ff5705';
+              return;
+            }
+
+            addBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
+            status.textContent = '';
+
+            fetch('/api/alerts/subscriptions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                group_id: gid,
+                location_id: locId,
+                location_name: locName,
+                phone_number: phone,
+                alert_type: alertType,
+                threshold_value: parseFloat(threshold),
+                cooldown_minutes: parseInt(cooldownField.input.value, 10),
+                quiet_start: quietStartField.input.value || null,
+                quiet_end: quietEndField.input.value || null,
+                sms_consent: true
+              })
+            })
+            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+            .then(function(res) {
+              if (res.ok) {
+                status.textContent = 'Alert subscription created.';
+                status.style.color = '#6ccf59';
+                phoneField.input.value = '';
+                thresholdField.input.value = '';
+                loadSubscriptions();
+              } else {
+                status.textContent = res.data.error || 'Failed to create subscription.';
+                status.style.color = '#ff5705';
+              }
+              addBtn.disabled = false;
+              addBtn.textContent = 'Add Alert';
+            })
+            .catch(function() {
+              status.textContent = 'Network error. Please try again.';
+              status.style.color = '#ff5705';
+              addBtn.disabled = false;
+              addBtn.textContent = 'Add Alert';
+            });
+          });
+
+          btnRow.appendChild(cancelBtn);
+          btnRow.appendChild(addBtn);
+
+          dialog.appendChild(title);
+          dialog.appendChild(listContainer);
+          dialog.appendChild(formTitle);
+          dialog.appendChild(groupField.wrap);
+          dialog.appendChild(locationField.wrap);
+          dialog.appendChild(phoneField.wrap);
+
+          // SMS consent checkbox — placed right after phone so it's visible without scrolling.
+          var consentWrap = document.createElement('div');
+          consentWrap.style.cssText = 'margin:10px 0;padding:10px 12px;display:flex;align-items:flex-start;gap:8px;'
+            + 'border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.03);';
+          var consentCb = document.createElement('input');
+          consentCb.type = 'checkbox';
+          consentCb.id = 'sms-consent-cb';
+          consentCb.style.cssText = 'margin-top:2px;flex-shrink:0;width:20px;height:20px;cursor:pointer;'
+            + 'accent-color:#6e9fff;outline:2px solid rgba(255,255,255,0.4);outline-offset:1px;'
+            + 'border-radius:3px;color-scheme:dark;';
+          var consentLabel = document.createElement('label');
+          consentLabel.htmlFor = 'sms-consent-cb';
+          consentLabel.style.cssText = 'font-size:12px;color:#bbb;cursor:pointer;line-height:1.4;';
+          consentLabel.innerHTML = 'I agree to receive automated SMS tide alerts and acknowledge the '
+            + '<a href="/api/alerts/sms-terms" target="_blank" style="color:#6e9fff;text-decoration:underline;">SMS Alert Terms</a>. '
+            + 'Msg &amp; data rates may apply. Reply STOP to opt out.';
+          consentWrap.appendChild(consentCb);
+          consentWrap.appendChild(consentLabel);
+          dialog.appendChild(consentWrap);
+
+          dialog.appendChild(typeField.wrap);
+          dialog.appendChild(thresholdField.wrap);
+          dialog.appendChild(cooldownField.wrap);
+          dialog.appendChild(quietWrap);
+
+          dialog.appendChild(status);
+          dialog.appendChild(btnRow);
+          overlay.appendChild(dialog);
+          document.body.appendChild(overlay);
+
+          // Load data
+          loadGroups();
+          loadSubscriptions();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', injectAlertButton);
+        } else {
+          injectAlertButton();
+        }
+      })();
 
       // Set theme to match system only on startup.
       // Do not react to changes in system theme after startup.

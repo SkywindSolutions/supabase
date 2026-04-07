@@ -1,0 +1,41 @@
+# Monitoring overlay - Prometheus + node-exporter host metrics for Grafana dashboards/alerts.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml \
+#     -f docker-compose.grafana.yml -f docker-compose.monitoring.yml up -d prometheus node-exporter
+#
+# Metrics endpoints:
+#   Prometheus:    http://prometheus:9090
+#   node-exporter: http://node-exporter:9100/metrics
+
+name: supabase
+
+services:
+  node-exporter:
+    container_name: supabase-node-exporter
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)
+      - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|nsfs|overlay|proc|pstore|rpc_pipefs|securityfs|squashfs|sysfs|tracefs)$
+    volumes:
+      - /:/host:ro,rslave
+
+  prometheus:
+    container_name: supabase-prometheus
+    image: prom/prometheus:v2.53.2
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./volumes/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - node-exporter
+
+volumes:
+  prometheus_data:
+    driver: local

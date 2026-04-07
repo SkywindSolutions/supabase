@@ -30,6 +30,14 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_APP_TITLE: Skywind Solutions
+      # SMTP settings for Grafana unified alerting email notifications.
+      GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
+      GF_SMTP_HOST: ${GRAFANA_SMTP_HOST:-}
+      GF_SMTP_USER: ${GRAFANA_SMTP_USER:-}
+      GF_SMTP_PASSWORD: ${GRAFANA_SMTP_PASSWORD:-}
+      GF_SMTP_FROM_ADDRESS: ${GRAFANA_SMTP_FROM_ADDRESS:-alerts@example.com}
+      GF_SMTP_FROM_NAME: ${GRAFANA_SMTP_FROM_NAME:-Skywind Alerts}
+      GF_SMTP_SKIP_VERIFY: ${GRAFANA_SMTP_SKIP_VERIFY:-true}
       # Grafana is served at the domain root behind the Caddy proxy
       GF_SERVER_ROOT_URL: https://${PROXY_DOMAIN}/
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
@@ -45,6 +53,8 @@ services:
       GF_DATE_FORMATS_INTERVAL_HOUR: "ddd MM/DD hh A"
       # Exposed for datasource provisioning variable substitution
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Recipient list used by provisioned alert contact points.
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-admin@example.com}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./volumes/grafana/provisioning:/etc/grafana/provisioning

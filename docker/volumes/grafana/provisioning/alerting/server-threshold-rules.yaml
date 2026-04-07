@@ -1,0 +1,239 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: server-threshold-alerts
+    folder: Internal Dashboards
+    interval: 1m
+    rules:
+      - uid: cpu_usage_gt_80
+        title: CPU usage above 80%
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 80
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        dashboardUid: internal-server-stats
+        panelId: 1
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: CPU usage is above 80%
+          description: CPU usage has remained above 80% for 5 minutes on {{ $labels.instance }}.
+        labels:
+          severity: critical
+          team: infra
+
+      - uid: mem_usage_gt_80
+        title: Memory usage above 80%
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 80
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        dashboardUid: internal-server-stats
+        panelId: 2
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Memory usage is above 80%
+          description: Memory usage has remained above 80% for 5 minutes on {{ $labels.instance }}.
+        labels:
+          severity: critical
+          team: infra
+
+      - uid: root_disk_usage_gt_75
+        title: Root filesystem usage above 75%
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: (1 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) * 100
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 75
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        dashboardUid: internal-server-stats
+        panelId: 3
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Root filesystem usage is above 75%
+          description: Root filesystem usage has remained above 75% for 5 minutes on {{ $labels.instance }}.
+        labels:
+          severity: warning
+          team: infra
+
+      - uid: nyc_volume_usage_gt_80
+        title: /mnt/volume_nyc1_01 usage above 80%
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: (1 - (node_filesystem_avail_bytes{mountpoint="/mnt/volume_nyc1_01",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{mountpoint="/mnt/volume_nyc1_01",fstype!~"tmpfs|overlay|squashfs"})) * 100
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 80
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        dashboardUid: internal-server-stats
+        panelId: 4
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: /mnt/volume_nyc1_01 usage is above 80%
+          description: /mnt/volume_nyc1_01 usage has remained above 80% for 5 minutes on {{ $labels.instance }}.
+        labels:
+          severity: critical
+          team: infra
