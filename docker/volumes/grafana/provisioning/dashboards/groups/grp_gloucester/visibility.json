@@ -36,7 +36,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Visibility (mi)",
+            "axisLabel": "Visibility (nmi)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -79,7 +79,7 @@
               }
             ]
           },
-          "unit": "lengthmi"
+          "unit": "nmi"
         },
         "overrides": [
           {
@@ -90,7 +90,14 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Visibility (mean)"
+                "value": "Predicted Visibility"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -117,6 +124,13 @@
               {
                 "id": "displayName",
                 "value": "Visibility (upper bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -151,6 +165,13 @@
               {
                 "id": "displayName",
                 "value": "Visibility (lower bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -202,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_gloucester'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -224,7 +245,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
@@ -232,12 +253,12 @@
                 "value": 1
               },
               {
-                "color": "red",
-                "value": 0.5
+                "color": "green",
+                "value": 3
               }
             ]
           },
-          "unit": "lengthmi"
+          "unit": "nmi"
         },
         "overrides": []
       },
@@ -348,7 +369,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 1.5 mi)"
+                "value": "P(vis \u2264 1.5 nmi)"
               }
             ]
           },
@@ -360,7 +381,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 1 mi)"
+                "value": "P(vis \u2264 1 nmi)"
               }
             ]
           },
@@ -372,7 +393,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 0.75 mi)"
+                "value": "P(vis \u2264 0.75 nmi)"
               }
             ]
           },
@@ -384,7 +405,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 0.5 mi)"
+                "value": "P(vis \u2264 0.5 nmi)"
               }
             ]
           }
@@ -418,11 +439,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_gloucester'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
-      "title": "Probability of Reduced Visibility (vis \u2264 threshold)",
+      "title": "Probability of Reduced Visibility",
       "type": "timeseries"
     },
     {
@@ -458,12 +479,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Visibility (mean)"
+              "options": "Predicted Visibility"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "lengthmi"
+                "value": "nmi"
               },
               {
                 "id": "thresholds",
@@ -536,7 +557,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Visibility (mean)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
+          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Predicted Visibility\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
           "refId": "A"
         }
       ],

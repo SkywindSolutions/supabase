@@ -54,6 +54,14 @@
 		reverse_proxy alerts:8090
 	}
 
+	# Friendly alias for the Port Richey public dashboard.
+	# Grafana's SPA extracts the access token from the browser URL path and
+	# uses it in follow-up API calls (/api/public/dashboards/<token>/...).
+	# A single path_regexp rewrite covers both the initial page load path
+	# and all subsequent API calls so Grafana always sees the real token.
+	@port_richey path_regexp pr (/public-dashboards|/api/public/dashboards)/Port-Richey(.*)
+	rewrite @port_richey {re.pr.1}/27539075035b4a64a0a9f2bebfcbd64d{re.pr.2}
+
 	# Default: Grafana at the root — Grafana manages its own login page.
 	handle {
 		reverse_proxy grafana:3000

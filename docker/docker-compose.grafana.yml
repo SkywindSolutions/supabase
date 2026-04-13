@@ -44,10 +44,10 @@ services:
       # Disable telemetry
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      # Disable sharing features that are not allowed in this environment.
+      # Disable snapshots but allow externally shared dashboards.
       GF_SNAPSHOTS_ENABLED: "false"
       GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
-      GF_PUBLIC_DASHBOARDS_ENABLED: "false"
+      GF_PUBLIC_DASHBOARDS_ENABLED: "true"
       GF_USERS_DEFAULT_THEME: system
       # Format hourly x-axis labels as Tue 04/07 06 PM.
       GF_DATE_FORMATS_INTERVAL_HOUR: "ddd MM/DD hh A"

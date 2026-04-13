@@ -223,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' != 'tide_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'tide_nbm'\n  AND startdt = $__timeFrom()\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -491,7 +491,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Forecast (mean)"
+                "value": "Skywind Astro Forecast"
               },
               {
                 "id": "custom.lineStyle",
@@ -573,6 +573,35 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NBM Forecast"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -604,11 +633,21 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_astro'\n  AND timestamp >= $__timeFrom()::timestamptz - INTERVAL '7 days'\n  AND timestamp <= $__timeTo()::timestamptz\nORDER BY timestamp",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean AS \"NBM Forecast\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_nbm'\n  AND startdt = $__timeFrom()\nORDER BY forecastdtutc",
+          "refId": "B"
         }
       ],
-      "timeFrom": "7d",
       "title": "Observed vs. Forecast Tide",
       "type": "timeseries"
     }
@@ -715,6 +754,6 @@
   "timezone": "browser",
   "title": "Tide Forecast (Internal)",
   "uid": "internal-tide",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }

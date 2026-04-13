@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Wind forecast data for Gloucester MA Forecasts. Customer-facing dashboard. No observation data.",
+  "description": "Public-facing 7-day tide forecast for Port Richey. Static dashboard for external sharing; location, model, and datum are hard-coded because Grafana public dashboards do not support variables.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -36,7 +36,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Wind Speed (kt)",
+            "axisLabel": "Tide Height (ft, MSL)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -79,18 +79,25 @@
               }
             ]
           },
-          "unit": "velocityknot"
+          "unit": "lengthft"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "windspdmean"
+              "options": "tidemean"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Wind Speed (mean)"
+                "value": "Predicted Value"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -111,12 +118,19 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "windspdub"
+              "options": "tideub"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Wind Speed (upper bound)"
+                "value": "Tide (upper bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -134,7 +148,7 @@
               },
               {
                 "id": "custom.fillBelowTo",
-                "value": "windspdlb"
+                "value": "tidelb"
               },
               {
                 "id": "custom.fillOpacity",
@@ -145,12 +159,19 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "windspdlb"
+              "options": "tidelb"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Wind Speed (lower bound)"
+                "value": "Tide (lower bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
               },
               {
                 "id": "custom.lineStyle",
@@ -175,8 +196,8 @@
         ]
       },
       "gridPos": {
-        "h": 9,
-        "w": 18,
+        "h": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -202,11 +223,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_astro'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
-      "title": "Wind Speed Forecast",
+      "title": "Tide Forecast",
       "type": "timeseries"
     },
     {
@@ -224,20 +245,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "blue",
                 "value": null
               },
               {
-                "color": "yellow",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 25
+                "color": "green",
+                "value": 0
               }
             ]
           },
-          "unit": "velocityknot"
+          "unit": "lengthft"
         },
         "overrides": []
       },
@@ -245,7 +262,7 @@
         "h": 9,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 12
       },
       "id": 2,
       "options": {
@@ -271,11 +288,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = 'Port Richey'\n    AND group_id = 'grp_portrichey'\n    AND model = 'tide_astro'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
-      "title": "Current Wind Speed",
+      "title": "Current Tide",
       "type": "stat"
     },
     {
@@ -283,46 +300,12 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
+      "description": "Static dashboard metadata used for the public Port Richey share link.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Direction (\u00b0)",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "max": 360,
-          "min": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -332,64 +315,31 @@
                 "value": null
               }
             ]
-          },
-          "unit": "degree"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "winddirmean"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Wind Direction (mean)"
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 18,
         "x": 0,
-        "y": 9
+        "y": 12
       },
       "id": 3,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "content": "<div style=\"line-height:1.6;\"><strong>Public dashboard scope</strong><br />Customer: Port Richey<br />Location: Port Richey<br />Model: tide_astro<br />Datum: MSL<br />Time window: now to now+7d</div>",
+        "mode": "html"
       },
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
-          "refId": "A"
-        }
-      ],
-      "title": "Wind Direction Forecast",
-      "type": "timeseries"
+      "pluginVersion": "12.4.1",
+      "title": "Forecast Details",
+      "type": "text"
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
+      "description": "Tabular view of the full forecast shown in the tide chart.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -417,47 +367,8 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "Wind Speed (mean)"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "velocityknot"
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 15
-                    },
-                    {
-                      "color": "red",
-                      "value": 25
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Last Updated"
+              "id": "byRegexp",
+              "options": "^Date"
             },
             "properties": [
               {
@@ -465,16 +376,52 @@
                 "value": "dateTimeAsLocal"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Predicted Value"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tide Upper Bound"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tide Lower Bound"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
           }
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 9,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 21
       },
-      "id": 4,
+      "id": 6,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -496,57 +443,23 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed (mean)\"\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
+          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_astro'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
-      "title": "Wind Speed by Location (latest per location)",
+      "title": "Tide Forecast Data",
       "type": "table"
     }
   ],
   "refresh": "5m",
   "schemaVersion": 39,
   "tags": [
-    "customer",
-    "wind"
+    "public",
+    "tide",
+    "portrichey"
   ],
   "templating": {
-    "list": [
-      {
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
-        "hide": 2,
-        "includeAll": false,
-        "multi": false,
-        "name": "model",
-        "query": "SELECT DISTINCT model FROM forecast_data ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Model"
-      },
-      {
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "location",
-        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Location"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now",
@@ -554,8 +467,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Gloucester MA Forecasts \u2014 Wind Forecast",
-  "uid": "wind-grp_gloucester",
+  "title": "Port Richey Public Tide Forecast",
+  "uid": "public-port-richey-tide",
   "version": 1,
   "weekStart": ""
 }

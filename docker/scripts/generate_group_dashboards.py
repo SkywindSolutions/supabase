@@ -56,21 +56,25 @@ log = logging.getLogger(__name__)
 # Extend this dict when new customer groups are added.
 # ---------------------------------------------------------------------------
 GROUP_DISPLAY_NAMES: dict[str, str] = {
-    "grp_boston":     "Boston Inner Harbor Forecasts",
-    "grp_cape_cod":   "Cape Cod Bay Forecasts",
-    "grp_portland":   "Portland ME Forecasts",
-    "grp_gloucester": "Gloucester MA Forecasts",
-    "group_alpha":    "Alpha Maritime Forecasts",
-    "group_beta":     "Beta Offshore Forecasts",
-    "grp_portrichey": "Port Richey Forecasts",
-    "grp_clearwater": "Clearwater Forecasts",
+    "grp_boston":        "Boston Inner Harbor Forecasts",
+    "grp_cape_cod":      "Cape Cod Bay Forecasts",
+    "grp_portland":      "Portland ME Forecasts",
+    "grp_gloucester":    "Gloucester MA Forecasts",
+    "group_alpha":       "Alpha Maritime Forecasts",
+    "group_beta":        "Beta Offshore Forecasts",
+    "grp_portrichey":   "Port Richey Forecasts",
+    "grp_clearwater":   "Clearwater Forecasts",
+    "grp_corpuschristi": "Corpus Christi Forecasts",
 }
 
-# Data-type → primary column used to detect whether a group has that data
-DATA_TYPE_COLUMNS: dict[str, str] = {
-    "visibility": "vismean",
-    "wind":       "windspdmean",
-    "tide":       "tidemean",
+# Data-type → columns checked to detect whether a group has that data.
+# A group is considered to have a data type when ANY of its columns has at
+# least one non-NULL row.  Visibility uses both vismean and nbmvis so that
+# groups whose model produces only nbmvis (e.g. model_1) are detected correctly.
+DATA_TYPE_COLUMNS: dict[str, list[str]] = {
+    "visibility": ["vismean", "nbmvis"],
+    "wind":       ["windspdmean"],
+    "tide":       ["tidemean"],
 }
 
 
@@ -84,8 +88,9 @@ TEMPLATE_NAMES: dict[str, str] = {
 # Per-group, per-dashboard default model mapping
 # Example: {"grp_portrichey": {"tide": "tide_astro", "wind": "gfs", "visibility": "vis_model1"}, ...}
 DEFAULT_MODEL: dict[str, dict[str, str]] = {
-    "grp_portrichey": {"tide": "tide_astro"},
-    "grp_clearwater": {"tide": "tide_astro"},
+    "grp_portrichey":   {"tide": "tide_astro"},
+    "grp_clearwater":   {"tide": "tide_astro"},
+    "grp_corpuschristi": {"visibility": "fog_1"},
     # Add group-specific defaults here as needed
 }
 
@@ -124,8 +129,8 @@ def discover_groups(conn_str: str) -> dict[str, set[str]]:
 
     result: dict[str, set[str]] = {}
     checks = " ".join(
-        f"COUNT({col}) > 0  AS has_{dtype},"
-        for dtype, col in DATA_TYPE_COLUMNS.items()
+        f"({' + '.join(f'COUNT({c})' for c in cols)}) > 0  AS has_{dtype},"
+        for dtype, cols in DATA_TYPE_COLUMNS.items()
     ).rstrip(",")
 
     sql = f"""
@@ -173,8 +178,8 @@ def discover_selected_groups(conn_str: str, groups: list[str]) -> dict[str, set[
         return {}
 
     checks = " ".join(
-        f"COUNT({col}) > 0  AS has_{dtype},"
-        for dtype, col in DATA_TYPE_COLUMNS.items()
+        f"({' + '.join(f'COUNT({c})' for c in cols)}) > 0  AS has_{dtype},"
+        for dtype, cols in DATA_TYPE_COLUMNS.items()
     ).rstrip(",")
 
     sql = f"""
@@ -215,14 +220,16 @@ def count_group_locations(conn_str: str, group_id: str, dtype: str) -> int:
     except ImportError:
         return -1
 
-    col = DATA_TYPE_COLUMNS.get(dtype)
-    if not col:
+    cols = DATA_TYPE_COLUMNS.get(dtype)
+    if not cols:
         return -1
+    # A row is considered to have data if any of the detection columns is non-NULL.
+    not_null_clause = " OR ".join(f"{c} IS NOT NULL" for c in cols)
 
     sql = f"""
         SELECT COUNT(DISTINCT locname)
         FROM public.forecast_data
-        WHERE group_id = %s AND {col} IS NOT NULL;
+        WHERE group_id = %s AND ({not_null_clause});
     """
 
     try:
@@ -346,21 +353,68 @@ def _patch_group_id(panels: list, group_id: str) -> None:
             _patch_group_id(panel["panels"], group_id)
 
 
+def _parse_existing_group_providers(yaml_path: Path) -> dict[str, dict]:
+    """
+    Parse the existing dashboards.yaml and return a dict of group_id → provider
+    metadata for all per-group providers (those whose path ends with
+    groups/<group_id>).
+
+    Returns:
+        {group_id: {"display_name": str, "dtypes_str": str}, ...}
+    """
+    existing: dict[str, dict] = {}
+    if not yaml_path.exists():
+        return existing
+
+    text = yaml_path.read_text()
+    # Match provider blocks by their path line pointing into groups/
+    for match in re.finditer(
+        r"#\s*(.+?)\s*\(([^)]*)\)\s*\n"
+        r"\s*- name:\s*(.+)\n"
+        r"(?:.*\n)*?"
+        r"\s*path:\s*/etc/grafana/provisioning/dashboards/groups/(\S+)",
+        text,
+    ):
+        display_name = match.group(3).strip()
+        dtypes_str = match.group(2).strip()
+        group_id = match.group(4).strip()
+        existing[group_id] = {
+            "display_name": display_name,
+            "dtypes_str": dtypes_str,
+        }
+    return existing
+
+
 def write_dashboards_yaml(
     output_root: Path,
     group_dtypes: dict[str, set[str]],
 ) -> None:
     """
-    Rewrite dashboards.yaml to include providers for:
+    Update dashboards.yaml to include providers for:
     - Internal Dashboards (internal/)
     - Customer Dashboards (customer/ — admin/reference only)
     - One provider per group folder (groups/<group_id>/)
 
-    The per-group providers are restricted to the data types that the group
-    actually has data for — dashboards that don't exist on disk simply won't
-    appear in Grafana.
+    This function is **additive**: existing per-group providers that are not in
+    the current ``group_dtypes`` are preserved.  Providers for groups that *are*
+    in ``group_dtypes`` are updated with the latest data-type annotation.
     """
     yaml_path = output_root / "dashboards.yaml"
+
+    # Merge: existing groups are preserved, current run updates/adds entries.
+    existing = _parse_existing_group_providers(yaml_path)
+
+    # Build the merged set — current run wins for groups it touches.
+    merged: dict[str, tuple[str, str]] = {}  # group_id → (display_name, dtypes_str)
+    for gid, meta in existing.items():
+        merged[gid] = (meta["display_name"], meta["dtypes_str"])
+
+    for gid, dtypes in group_dtypes.items():
+        if gid in ("group_alpha", "group_beta"):
+            continue
+        display_name = GROUP_DISPLAY_NAMES.get(gid, gid)
+        dtypes_str = ", ".join(sorted(dtypes)) if dtypes else "none"
+        merged[gid] = (display_name, dtypes_str)
 
     lines = [
         "# Grafana dashboard provisioning — Skywind Infrastructure",
@@ -416,13 +470,9 @@ def write_dashboards_yaml(
         "  # ----------------------------------------------------------------",
     ]
 
-    for group_id, dtypes in sorted(group_dtypes.items()):
-        # Skip the shared reference groups — they use the shared customer/ folder
-        if group_id in ("group_alpha", "group_beta"):
-            continue
-        display_name = GROUP_DISPLAY_NAMES.get(group_id, group_id)
+    for group_id in sorted(merged.keys()):
+        display_name, dtypes_str = merged[group_id]
         folder_uid = sanitise_folder_uid(group_id)
-        dtypes_str = ", ".join(sorted(dtypes)) if dtypes else "none"
         lines += [
             "",
             f"  # {display_name} ({dtypes_str})",

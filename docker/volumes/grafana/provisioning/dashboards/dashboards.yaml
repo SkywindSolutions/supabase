@@ -86,7 +86,19 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_clearwater
 
-  # Gloucester MA Forecasts (tide, visibility, wind)
+  # Corpus Christi Forecasts (visibility)
+  - name: Corpus Christi Forecasts
+    orgId: 1
+    folder: Corpus Christi Forecasts
+    folderUid: cust-grp-corpuschristi
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_corpuschristi
+
+  # Gloucester MA Forecasts (visibility)
   - name: Gloucester MA Forecasts
     orgId: 1
     folder: Gloucester MA Forecasts

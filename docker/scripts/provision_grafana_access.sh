@@ -318,6 +318,7 @@ log "=== Step 5: Set folder permissions ==="
 declare -A FOLDER_UIDS=(
     ["customer-dashboards"]="customer-dashboards"
     ["internal-dashboards"]="internal-dashboards"
+    ["public-dashboards"]="public-dashboards"
     ["boston"]="cust-grp-boston"
     ["cape_cod"]="cust-grp-cape-cod"
     ["portland"]="cust-grp-portland"
@@ -329,6 +330,7 @@ declare -A FOLDER_UIDS=(
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
 patch_folder_team_permission "${FOLDER_UIDS[customer-dashboards]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[internal-dashboards]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[public-dashboards]}" "$INTERNAL_TEAM_ID" 1
 
 # Internal team also gets access to all group folders (for support/debugging)
 patch_folder_team_permission "${FOLDER_UIDS[boston]}" "$INTERNAL_TEAM_ID" 1
