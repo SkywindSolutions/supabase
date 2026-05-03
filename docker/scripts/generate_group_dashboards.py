@@ -56,15 +56,14 @@ log = logging.getLogger(__name__)
 # Extend this dict when new customer groups are added.
 # ---------------------------------------------------------------------------
 GROUP_DISPLAY_NAMES: dict[str, str] = {
-    "grp_boston":        "Boston Inner Harbor Forecasts",
-    "grp_cape_cod":      "Cape Cod Bay Forecasts",
-    "grp_portland":      "Portland ME Forecasts",
-    "grp_gloucester":    "Gloucester MA Forecasts",
     "group_alpha":       "Alpha Maritime Forecasts",
     "group_beta":        "Beta Offshore Forecasts",
     "grp_portrichey":   "Port Richey Forecasts",
     "grp_clearwater":   "Clearwater Forecasts",
     "grp_corpuschristi": "Corpus Christi Forecasts",
+    "grp_chatham":      "Chatham Forecasts",
+    "grp_oceanCay":     "Ocean Cay Forecasts",
+    "grp_sendero":      "Sendero Forecasts",
 }
 
 # Data-type → columns checked to detect whether a group has that data.
@@ -85,14 +84,35 @@ TEMPLATE_NAMES: dict[str, str] = {
     "tide.json":       "tide",
 }
 
-# Per-group, per-dashboard default model mapping
-# Example: {"grp_portrichey": {"tide": "tide_astro", "wind": "gfs", "visibility": "vis_model1"}, ...}
-DEFAULT_MODEL: dict[str, dict[str, str]] = {
-    "grp_portrichey":   {"tide": "tide_astro"},
-    "grp_clearwater":   {"tide": "tide_astro"},
-    "grp_corpuschristi": {"visibility": "fog_1"},
-    # Add group-specific defaults here as needed
-}
+# Per-group, per-dashboard default model mapping.
+# Single source of truth: scripts/default_models.json (also consumed by
+# alert_service.py so SMS alerts follow the dashboard default automatically).
+# Schema: {"groups": {<group_id>: {<data_type>: <model_name>}, ...}, ...}
+_DEFAULT_MODELS_PATH = Path(__file__).resolve().parent / "default_models.json"
+
+
+def _load_default_models() -> dict[str, dict[str, str]]:
+    """Load the per-group default-model mapping from default_models.json.
+
+    Returns an empty dict if the file is missing or malformed; the rest of the
+    script treats absence as "no default" and the model dropdown's first value
+    is used.
+    """
+    try:
+        with open(_DEFAULT_MODELS_PATH) as fh:
+            data = json.load(fh)
+        groups = data.get("groups", {})
+        # Filter out underscore-prefixed metadata keys defensively.
+        return {gid: dtypes for gid, dtypes in groups.items()
+                if isinstance(gid, str) and not gid.startswith("_")
+                and isinstance(dtypes, dict)}
+    except (OSError, json.JSONDecodeError) as exc:
+        log.warning("Failed to load %s: %s — proceeding with no defaults",
+                    _DEFAULT_MODELS_PATH, exc)
+        return {}
+
+
+DEFAULT_MODEL: dict[str, dict[str, str]] = _load_default_models()
 
 
 def load_env(env_path: Path) -> dict[str, str]:
@@ -311,6 +331,8 @@ def make_group_dashboard(
                 var["current"] = {"text": default_model, "value": default_model}
             else:
                 var.pop("current", None)
+        elif var.get("name") == "height_m":
+            var["current"] = {"text": "All", "value": "$__all"}
         else:
             # Clear the cached current value so Grafana picks the first real result
             var.pop("current", None)
@@ -322,18 +344,27 @@ def make_group_dashboard(
     # -- Filter panels for single-location groups (tide only) -----------------
     if dtype == "tide" and location_count == 1:
         panels = d.get("panels", [])
-        # Remove Tide by Location panel
+        # Remove Tide by Location panel (redundant when only one location exists)
         panels = [p for p in panels if not str(p.get("title", "")).startswith("Tide by Location")]
         d["panels"] = panels
-        # Adjust Current Tide panel position: move to x=0 and position next to or below Tide Forecast Data
-        # Find the Tide Forecast Data panel to position Current Tide appropriately
+        # Collapse the layout so Current Tide and Tide Forecast Data share row 2
+        # rather than leaving the Tide by Location gap on row 2 and pushing the
+        # forecast data table down to row 3.
+        # Layout: Tide Forecast Data on the left (x=0,w=20), Current Tide stat
+        # on the right (x=20,w=4), both at y=12 with matching height.
         for panel in panels:
-            if str(panel.get("title", "")).startswith("Current Tide"):
-                # Position Current Tide at x=18, next to where Tide by Location would be (on the same y as Tide Forecast Data)
-                grid = panel.get("gridPos", {})
-                grid["x"] = 18
-                grid["w"] = 6
-                break
+            title = str(panel.get("title", ""))
+            grid = panel.get("gridPos", {})
+            if title.startswith("Current Tide"):
+                grid["x"] = 20
+                grid["w"] = 4
+                grid["y"] = 12
+                grid["h"] = 9
+            elif title.startswith("Tide Forecast Data"):
+                grid["x"] = 0
+                grid["w"] = 20
+                grid["y"] = 12
+                grid["h"] = 9
 
     return d
 
@@ -525,7 +556,7 @@ def main() -> None:
         metavar="JSON",
         help=(
             "JSON object mapping group_id → list of data types.  Skips DB query. "
-            'Example: \'{"grp_boston":["visibility"],"grp_cape_cod":["tide"]}\''
+            'Example: \'{"grp_clearwater":["tide"],"grp_corpuschristi":["visibility"]}\''
         ),
     )
     parser.add_argument(

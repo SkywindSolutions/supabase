@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "24-hour visibility forecast — forecast fields only. No observation data. Customer-facing. Forecast panels display the model run (startdt) on or before the selected window start.",
+  "description": "24-hour visibility forecast \u2014 forecast fields only. No observation data. Customer-facing. Forecast panels display the model run (startdt) on or before the selected window start.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -79,7 +79,9 @@
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
         },
         "overrides": [
           {
@@ -197,7 +199,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 18,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -263,10 +265,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 6,
-        "x": 18,
-        "y": 0
+        "x": 0,
+        "y": 18
       },
       "id": 2,
       "options": {
@@ -369,43 +371,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis ≤ 1.5 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis1"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 1 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis075"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 0.75 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis05"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 0.5 nmi)"
+                "value": "P(vis \u2264 1.5 nmi)"
               }
             ]
           }
@@ -439,7 +405,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -531,8 +497,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 24,
-        "x": 0,
+        "w": 18,
+        "x": 6,
         "y": 18
       },
       "id": 4,
@@ -561,7 +527,7 @@
           "refId": "A"
         }
       ],
-      "title": "Visibility by Location (latest per location)",
+      "title": "Visibility by Location",
       "type": "table"
     }
   ],

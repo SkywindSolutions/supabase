@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "24-hour visibility forecast — internal view. Forecast panels display the model run (startdt) on or before the selected window start. Includes observation overlays (nbmvis, obsvis), model comparison, and bias diagnostics. Internal use only.",
+  "description": "24-hour visibility forecast \u2014 internal view. Forecast panels display the model run (startdt) on or before the selected window start. Includes observation overlays (nbmvis, obsvis), model comparison, and bias diagnostics. Internal use only.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -79,7 +79,9 @@
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
         },
         "overrides": [
           {
@@ -197,7 +199,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 18,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -263,10 +265,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 6,
-        "x": 18,
-        "y": 0
+        "x": 0,
+        "y": 18
       },
       "id": 2,
       "options": {
@@ -369,43 +371,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis ≤ 1.5 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis1"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 1 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis075"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 0.75 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis05"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis ≤ 0.5 nmi)"
+                "value": "P(vis \u2264 1.5 nmi)"
               }
             ]
           }
@@ -439,7 +405,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
           "refId": "A"
         }
       ],
@@ -531,8 +497,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 24,
-        "x": 0,
+        "w": 18,
+        "x": 6,
         "y": 18
       },
       "id": 4,
@@ -561,7 +527,7 @@
           "refId": "A"
         }
       ],
-      "title": "Visibility by Location (latest per location)",
+      "title": "Visibility by Location",
       "type": "table"
     },
     {
@@ -621,7 +587,9 @@
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
         },
         "overrides": [
           {
@@ -756,8 +724,19 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MAX(nbmvis) AS nbmvis,\n  MAX(obsvis) AS obsvis\nFROM forecast_data\nWHERE\n  (obsvis IS NOT NULL OR nbmvis IS NOT NULL)\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND $__timeFilter(timestamp)\nGROUP BY timestamp\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  f.timestamp AS \"time\",\n  LEAST(m1.nbmvis, 5.4) AS nbmvis\nFROM forecast_data f\nJOIN forecast_data m1\n  ON m1.locname = f.locname\n AND m1.group_id = f.group_id\n AND m1.startdt = f.startdt\n AND m1.fhr = f.fhr\n AND m1.model = 'model_1'\nWHERE\n  f.vismean IS NOT NULL\n  AND f.locname = '$location'\n  AND f.group_id = '$group'\n  AND f.model = '$model'\n  AND f.startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(f.timestamp)\nORDER BY f.timestamp",
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MAX(obsvis) AS obsvis\nFROM forecast_data\nWHERE\n  obsvis IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND timestamp >= $__timeFrom()::timestamptz - INTERVAL '7 days'\n  AND timestamp <= $__timeTo()::timestamptz\nGROUP BY timestamp\nORDER BY timestamp",
+          "refId": "C"
         }
       ],
       "title": "Observed vs. Forecast Visibility (Model Run)",
@@ -820,7 +799,9 @@
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
         },
         "overrides": [
           {
@@ -901,11 +882,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  vismean,\n  hrrrvis,\n  nbmvis,\n  vismedian\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  f.timestamp AS \"time\",\n  f.vismean,\n  f.hrrrvis,\n  LEAST(m1.nbmvis, 5.4) AS nbmvis,\n  f.vismedian\nFROM forecast_data f\nLEFT JOIN forecast_data m1\n  ON m1.locname = f.locname\n AND m1.group_id = f.group_id\n AND m1.startdt = f.startdt\n AND m1.fhr = f.fhr\n AND m1.model = 'model_1'\nWHERE\n  f.vismean IS NOT NULL\n  AND f.locname = '$location'\n  AND f.group_id = '$group'\n  AND f.model = '$model'\n  AND f.startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(f.timestamp)\nORDER BY f.timestamp",
           "refId": "A"
         }
       ],
-      "title": "Model Comparison — Model Run (vismean / hrrrvis / nbmvis / vismedian)",
+      "title": "Model Comparison \u2014 Model Run (vismean / hrrrvis / nbmvis / vismedian)",
       "type": "timeseries"
     },
     {

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyWind Solutions — Dashboard User Guide</title>
+<style>
+  :root {
+    --max-w: 820px;
+    --fg: #222;
+    --fg-secondary: #555;
+    --bg: #fff;
+    --bg-aside: #f6f8fa;
+    --border: #dde1e6;
+    --accent: #1a5dab;
+    --accent-light: #e8f0fb;
+    --tip-bg: #eff8e8;
+    --tip-border: #8bc34a;
+    --img-border: #cfd5db;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: var(--max-w); margin: 0 auto; padding: 32px 24px 64px;
+    line-height: 1.65; color: var(--fg); background: var(--bg);
+  }
+  h1 { font-size: 1.75rem; margin: 0 0 8px; color: var(--accent); }
+  h2 { font-size: 1.35rem; margin: 2em 0 0.6em; padding-bottom: 4px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1.1rem; margin: 1.5em 0 0.5em; }
+  a { color: var(--accent); }
+  img {
+    display: block; max-width: 100%; height: auto; margin: 16px 0;
+    border: 1px solid var(--img-border); border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .subtitle { color: var(--fg-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+  blockquote {
+    margin: 12px 0; padding: 10px 16px; background: var(--accent-light);
+    border-left: 4px solid var(--accent); border-radius: 4px; font-size: 0.95rem;
+  }
+  blockquote p { margin: 0; }
+  .tip {
+    margin: 12px 0; padding: 10px 16px; background: var(--tip-bg);
+    border-left: 4px solid var(--tip-border); border-radius: 4px; font-size: 0.93rem;
+  }
+  .tip strong { color: #4a7c10; }
+  .note {
+    margin: 12px 0; padding: 10px 16px; background: #fff8e6;
+    border-left: 4px solid #f5a623; border-radius: 4px; font-size: 0.93rem;
+  }
+  .note strong { color: #b07800; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 8px 12px; border: 1px solid var(--border); }
+  th { background: var(--bg-aside); font-weight: 600; }
+  ul, ol { padding-left: 1.5em; }
+  li { margin-bottom: 4px; }
+  code { background: var(--bg-aside); padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  nav.toc { background: var(--bg-aside); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; margin-bottom: 32px; }
+  nav.toc summary { font-weight: 600; font-size: 1.05rem; cursor: pointer; }
+  nav.toc ul { margin: 8px 0 0; }
+  nav.toc li { margin-bottom: 2px; font-size: 0.93rem; }
+  nav.toc ul ul { margin-top: 2px; }
+  .back-to-top { display: inline-block; font-size: 0.85rem; margin-top: 8px; }
+  @media print {
+    body { max-width: 100%; padding: 0; }
+    nav.toc { break-inside: avoid; }
+    img { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>SkyWind Solutions &mdash; Dashboard User Guide</h1>
+<p class="subtitle">Last updated: April 16, 2026</p>
+
+<!-- Table of Contents -->
+<nav class="toc">
+<details open>
+<summary>Table of Contents</summary>
+<ul>
+  <li><a href="#getting-started">Getting Started</a></li>
+  <li><a href="#navigating-the-dashboard">Navigating the Dashboard</a>
+    <ul>
+      <li><a href="#choosing-a-location">Choosing a Location</a></li>
+      <li><a href="#changing-the-time-range">Changing the Time Range</a></li>
+      <li><a href="#zooming-in-and-out">Zooming In and Out</a></li>
+      <li><a href="#hovering-over-data-points">Hovering Over Data Points</a></li>
+      <li><a href="#refreshing-the-data">Refreshing the Data</a></li>
+    </ul>
+  </li>
+  <li><a href="#tide-forecasts">Tide Forecasts</a>
+    <ul>
+      <li><a href="#tide-forecast-chart">Tide Forecast Chart</a></li>
+      <li><a href="#current-tide-reading">Current Tide Reading</a></li>
+      <li><a href="#tide-data-table">Tide Data Table</a></li>
+      <li><a href="#understanding-tide-values">Understanding Tide Values</a></li>
+    </ul>
+  </li>
+  <li><a href="#visibility-forecasts">Visibility Forecasts</a>
+    <ul>
+      <li><a href="#visibility-forecast-chart">Visibility Forecast Chart</a></li>
+      <li><a href="#probability-of-reduced-visibility">Probability of Reduced Visibility</a></li>
+      <li><a href="#current-visibility-reading">Current Visibility Reading</a></li>
+      <li><a href="#understanding-visibility-values">Understanding Visibility Values</a></li>
+    </ul>
+  </li>
+  <li><a href="#users-with-multiple-locations">Users with Multiple Locations</a></li>
+  <li><a href="#text-alerts-tide-only">Text Alerts (Tide Only)</a>
+    <ul>
+      <li><a href="#who-can-use-text-alerts">Who Can Use Text Alerts</a></li>
+      <li><a href="#setting-up-a-text-alert">Setting Up a Text Alert</a></li>
+      <li><a href="#alert-types-above-and-below">Alert Types: Above and Below</a></li>
+      <li><a href="#cooldown-period">Cooldown Period</a></li>
+      <li><a href="#quiet-hours">Quiet Hours</a></li>
+      <li><a href="#managing-your-alerts">Managing Your Alerts</a></li>
+      <li><a href="#opting-out">Opting Out</a></li>
+    </ul>
+  </li>
+  <li><a href="#tips-and-troubleshooting">Tips and Troubleshooting</a></li>
+  <li><a href="#glossary">Glossary</a></li>
+</ul>
+</details>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="getting-started">Getting Started</h2>
+
+<p>Your SkyWind Solutions dashboard is available at:</p>
+<blockquote><p><strong>https://dashboard.skywindsolutions.com</strong></p></blockquote>
+
+<p>Log in with the username and password provided by SkyWind Solutions.
+The dashboard opens automatically in <strong>kiosk mode</strong> &mdash; a full-screen
+view that shows only your forecast charts and controls, without any menus or
+sidebars. Depending on your account, you may have access to tide forecasts,
+visibility forecasts, or both.</p>
+
+<img src="/api/alerts/user-guide/images/dashboard-login.png" alt="Dashboard login page" style="max-width:60%">
+
+<p>After logging in, your default dashboard loads automatically. If your account
+has multiple dashboards (e.g., both tide and visibility), use the
+<strong>dashboard switcher</strong> at the top of the page to switch between them.</p>
+
+<img src="/api/alerts/user-guide/images/dashboard-kiosk.png" alt="Dashboard view after login in kiosk mode">
+
+<!-- ============================================================ -->
+<h2 id="navigating-the-dashboard">Navigating the Dashboard</h2>
+
+<p>All dashboards share common controls for selecting locations, adjusting the
+time window, and interacting with charts.</p>
+
+<h3 id="choosing-a-location">Choosing a Location</h3>
+
+<p>At the top of the dashboard, there is a <strong>Location</strong> dropdown.
+Click it to see the list of available locations for your account. Select a
+location to update all charts and readings on the page.</p>
+
+<img src="/api/alerts/user-guide/images/location-dropdown.png" alt="Location dropdown at the top of the dashboard">
+
+<h3 id="changing-the-time-range">Changing the Time Range</h3>
+
+<p>In the upper-right corner of the dashboard, you will see the
+<strong>time range selector</strong>. It shows the current time window (for example,
+&ldquo;now to now+7d&rdquo; for tide, or &ldquo;now to now+24h&rdquo; for visibility).</p>
+
+<p>To change the time range:</p>
+<ol>
+  <li>Click the time range selector in the upper right.</li>
+  <li>Choose a preset range from the <strong>Quick ranges</strong> list (e.g.,
+  &ldquo;Last 6 hours&rdquo;, &ldquo;Last 24 hours&rdquo;, &ldquo;Last 7 days&rdquo;),
+  or set a custom range using the <strong>From</strong> and <strong>To</strong> fields.</li>
+  <li>Click <strong>Apply time range</strong> to update the dashboard.</li>
+</ol>
+
+<img src="/api/alerts/user-guide/images/time-range-selector.png" alt="Time range selector in the upper right corner">
+
+<div class="tip">
+  <strong>Tip:</strong> The forecast dashboards default to showing future data
+  (e.g., &ldquo;now to now+7d&rdquo; for tide). If you set the time range to a past
+  window, you will see historical forecast data for that period.
+</div>
+
+<h3 id="zooming-in-and-out">Zooming In and Out</h3>
+
+<p>You can zoom into any chart to see more detail:</p>
+<ol>
+  <li><strong>Zoom in:</strong> Click and drag across a section of any chart to zoom
+  into that time period. Hold down the left mouse button and drag from left to right.</li>
+  <li><strong>Zoom out:</strong> To return to the original time range, click the
+  <strong>Zoom out</strong> button (a small magnifying glass icon with a minus sign)
+  at the top of the chart, or use the time range selector to reset the range.</li>
+  <li><strong>Reset zoom:</strong> You can also double-click on a chart to reset the zoom level.</li>
+</ol>
+
+<h3 id="hovering-over-data-points">Hovering Over Data Points</h3>
+
+<p>Move your mouse over any chart to see a <strong>tooltip</strong> with the exact
+value and timestamp for that data point. This is helpful for reading precise
+forecast values at a specific time.</p>
+
+<img src="/api/alerts/user-guide/images/chart-tooltip.png" alt="Tooltip showing exact data values on hover">
+
+<h3 id="refreshing-the-data">Refreshing the Data</h3>
+
+<p>The dashboard refreshes automatically every <strong>5 minutes</strong>. You can
+also refresh manually by clicking the <strong>refresh icon</strong> (circular arrow)
+next to the time range selector in the upper right.</p>
+
+<!-- ============================================================ -->
+<h2 id="tide-forecasts">Tide Forecasts</h2>
+
+<p>The tide forecast dashboard shows predicted water levels for the next 7 days.</p>
+
+<img src="/api/alerts/user-guide/images/tide-dashboard-overview.png" alt="Full tide forecast dashboard overview">
+
+<h3 id="tide-forecast-chart">Tide Forecast Chart</h3>
+
+<p>The main chart shows the <strong>predicted tide level over time</strong> as a
+continuous line. The horizontal axis is time, and the vertical axis is water
+level in feet.</p>
+
+<img src="/api/alerts/user-guide/images/tide-forecast-chart.png" alt="Tide forecast chart showing water level over time">
+
+<ul>
+  <li>The red line represents the forecasted water level at your selected location.</li>
+  <li>The shaded area represents the 90% confidence interval for forecasted water level.</li>
+</ul>
+
+<h3 id="current-tide-reading">Current Tide Reading</h3>
+
+<p>Below the chart, a large number displays the <strong>current tide reading</strong>
+in feet. This gives you an at-a-glance summary of the latest forecast value.</p>
+
+<img src="/api/alerts/user-guide/images/tide-current-stat.png" alt="Current tide stat panel showing the latest reading" style="max-width:50%">
+
+<h3 id="tide-data-table">Tide Data Table</h3>
+
+<p>Below the chart, a <strong>data table</strong> lists the forecasted tide values
+with timestamps. You can use this to look up specific values or to compare
+readings across time. If your account has multiple locations, a separate
+&ldquo;Tide by Location&rdquo; table shows the latest reading for each location
+side by side.</p>
+
+<img src="/api/alerts/user-guide/images/tide-data-table.png" alt="Tide forecast data table">
+
+<h3 id="understanding-tide-values">Understanding Tide Values</h3>
+
+<ul>
+  <li>Water levels are shown in <strong>feet</strong> relative to a standard reference level (datum).</li>
+  <li><strong>Positive values</strong> indicate the water level is above the reference level.</li>
+  <li><strong>Negative values</strong> indicate the water level is below the reference level.</li>
+  <li>Typical tidal cycles show two high tides and two low tides per day.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="visibility-forecasts">Visibility Forecasts</h2>
+
+<p>The visibility forecast dashboard shows predicted visibility conditions for the
+next 24 hours.</p>
+
+<img src="/api/alerts/user-guide/images/visibility-dashboard-overview.png" alt="Full visibility forecast dashboard overview">
+
+<h3 id="visibility-forecast-chart">Visibility Forecast Chart</h3>
+
+<p>The main chart shows <strong>forecasted visibility over time</strong>. The
+horizontal axis is time, and the vertical axis is visibility distance in
+nautical miles.</p>
+
+<img src="/api/alerts/user-guide/images/visibility-forecast-chart.png" alt="Visibility forecast chart">
+
+<ul>
+  <li>Higher values on the chart mean <strong>better visibility</strong> (you can see farther).</li>
+  <li>Lower values mean <strong>reduced visibility</strong> &mdash; fog, haze, or other obscurations may be present.</li>
+  <li>Watch for periods where the line drops significantly, as these indicate times of poor visibility.</li>
+</ul>
+
+<h3 id="probability-of-reduced-visibility">Probability of Reduced Visibility</h3>
+
+<p>A second chart shows the <strong>probability (likelihood) that visibility will
+be reduced</strong> at each forecast time. This is displayed as a percentage from
+0% to 100%.</p>
+
+<img src="/api/alerts/user-guide/images/visibility-probability-chart.png" alt="Probability of reduced visibility chart">
+
+<ul>
+  <li><strong>0%</strong> means clear conditions are expected.</li>
+  <li><strong>100%</strong> means fog or restricted visibility is highly likely.</li>
+  <li>Use this chart alongside the visibility forecast to understand not just the predicted
+  visibility, but how confident the forecast is.</li>
+</ul>
+
+<h3 id="current-visibility-reading">Current Visibility Reading</h3>
+
+<p>A large number displays the <strong>current visibility value</strong>, giving you
+an instant summary of conditions right now.</p>
+
+<img src="/api/alerts/user-guide/images/visibility-current-stat.png" alt="Current visibility stat panel" style="max-width:50%">
+
+<h3 id="understanding-visibility-values">Understanding Visibility Values</h3>
+
+<ul>
+  <li>Visibility distance tells you how far you can see clearly.</li>
+  <li><strong>Higher numbers = clearer conditions.</strong> A reading of 5+ miles typically means excellent visibility.</li>
+  <li><strong>Lower numbers = reduced visibility.</strong> Readings below 1 mile often indicate fog, dense haze, or precipitation.</li>
+  <li>Pay special attention to times when both the visibility forecast drops <em>and</em> the
+  probability of reduced visibility rises &mdash; these are the periods most likely to affect operations.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="users-with-multiple-locations">Users with Multiple Locations</h2>
+
+<p>If your account includes more than one monitoring location, you can switch
+between them using the <strong>Location</strong> dropdown at the top of the dashboard.</p>
+
+<img src="/api/alerts/user-guide/images/multi-location-dropdown.png" alt="Location dropdown showing multiple locations" style="max-width:50%">
+
+<p>When you change the selected location:</p>
+<ul>
+  <li>All charts and readings on the page update to show data for that location.</li>
+  <li>The current reading panels update immediately.</li>
+  <li>Any data tables will reflect the newly selected location.</li>
+</ul>
+
+<p><strong>Comparing locations:</strong> To quickly compare conditions across your
+locations, look for the summary table panel at the bottom of the dashboard
+(labeled &ldquo;Tide by Location&rdquo; or &ldquo;Visibility by Location&rdquo;).
+This table shows the <strong>latest reading for every location</strong> in your
+account at once, without needing to switch between them.</p>
+
+<img src="/api/alerts/user-guide/images/location-comparison-table.png" alt="Location comparison table showing all locations">
+
+<div class="tip">
+  <strong>Tip:</strong> If you need to monitor multiple locations simultaneously in
+  more detail, open the dashboard in a second browser tab and select a different
+  location in each tab.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="text-alerts-tide-only">Text Alerts (Tide Only)</h2>
+
+<p>Text alerts send SMS messages to your phone when tide levels are forecast to
+cross a threshold you set. At this time, <strong>text alerts are available for
+tide forecast locations only</strong> &mdash; visibility alerts are not yet supported.</p>
+
+<h3 id="who-can-use-text-alerts">Who Can Use Text Alerts</h3>
+
+<p>Text alerts are currently available to select users. If your account has access,
+you will see an <strong>&ldquo;Alert Settings&rdquo; button</strong> in the lower-right
+area of the dashboard when you are logged in.</p>
+
+<img src="/api/alerts/user-guide/images/alerts-button.png" alt="Alerts button in the lower-right corner of the dashboard">
+
+<p>If you do not see this button and believe you should have access, contact
+SkyWind Solutions support.</p>
+
+<h3 id="setting-up-a-text-alert">Setting Up a Text Alert</h3>
+
+<ol>
+  <li>Click the <strong>Alert Settings</strong> button in the lower right of the dashboard.</li>
+  <li>A popup form will appear.</li>
+</ol>
+
+<img src="/api/alerts/user-guide/images/alert-setup-form.png" alt="Alert subscription form" style="max-width:50%">
+
+<ol start="3">
+  <li>Fill in the following fields:
+    <ul>
+      <li><strong>Phone Number</strong> &mdash; Enter your mobile phone number in standard
+      format (e.g., +1-555-123-4567). This is the number that will receive text messages.</li>
+      <li><strong>Location</strong> &mdash; Select the tide monitoring location you want alerts for.</li>
+      <li><strong>Alert Type</strong> &mdash; Choose <strong>Above</strong> or
+      <strong>Below</strong> (see <a href="#alert-types-above-and-below">Alert Types</a> below).</li>
+      <li><strong>Threshold</strong> &mdash; Enter the water level (in feet) that should trigger the alert.</li>
+      <li><strong>Cooldown</strong> &mdash; How long to wait before sending another alert for
+      the same threshold crossing. Default is 1 hour.</li>
+      <li><strong>Quiet Hours (optional)</strong> &mdash; Set a time window during which no
+      alerts will be sent (see <a href="#quiet-hours">Quiet Hours</a> below).</li>
+    </ul>
+  </li>
+  <li><strong>Check the SMS consent checkbox.</strong> You must agree to the SMS terms before
+  you can create an alert. Click the link to read the full terms if needed.</li>
+  <li>Click <strong>Add Alert</strong> to create the alert.</li>
+</ol>
+
+<h3 id="alert-types-above-and-below">Alert Types: Above and Below</h3>
+
+<ul>
+  <li><strong>Above:</strong> You will be alerted when the tide forecast shows water levels
+  <strong>at or above</strong> your threshold. Use this if you are concerned about high water or flooding.</li>
+  <li><strong>Below:</strong> You will be alerted when the tide forecast shows water levels
+  <strong>at or below</strong> your threshold. Use this if you need to know about unusually low
+  water levels (e.g., for navigation clearance).</li>
+</ul>
+
+<h3 id="cooldown-period">Cooldown Period</h3>
+
+<p>After an alert is sent, the system waits for the <strong>cooldown period</strong>
+before sending another alert for the same subscription. This prevents you from
+receiving repeated messages about the same event. The default is 1 hour, but you
+can set it to any value that works for you.</p>
+
+<h3 id="quiet-hours">Quiet Hours</h3>
+
+<p>If you do not want to receive alerts during certain hours (for example, overnight),
+set <strong>Quiet Hours</strong>:</p>
+
+<ul>
+  <li><strong>Quiet Start</strong> &mdash; The time alerts should stop (e.g., 10:00 PM).</li>
+  <li><strong>Quiet End</strong> &mdash; The time alerts should resume (e.g., 6:00 AM).</li>
+</ul>
+
+<p>Quiet hours are evaluated in your browser time zone when the alert is created.
+Overnight windows that cross midnight are supported (e.g., 10:00 PM to 6:00 AM
+will suppress alerts from 10 PM through 6 AM).</p>
+
+<h3 id="managing-your-alerts">Managing Your Alerts</h3>
+
+<p>To view, edit, or delete your existing alert subscriptions, open the Alert
+Settings panel the same way you created them. Your active subscriptions will be
+listed at the top. From there you can:</p>
+
+<ul>
+  <li><strong>Enable or disable</strong> an alert without deleting it.</li>
+  <li><strong>Delete</strong> an alert you no longer need.</li>
+</ul>
+
+<h3 id="opting-out">Opting Out</h3>
+
+<p>You can stop receiving text alerts at any time in two ways:</p>
+
+<ol>
+  <li><strong>Reply STOP</strong> to any alert text message. This will opt you out of all SMS alerts.</li>
+  <li><strong>Disable or delete</strong> individual subscriptions through the Alert Settings panel on the dashboard.</li>
+</ol>
+
+<div class="note">
+  <strong>Note:</strong> Standard messaging and data rates may apply.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="tips-and-troubleshooting">Tips and Troubleshooting</h2>
+
+<ul>
+  <li><strong>Dashboard looks blank or shows &ldquo;No data&rdquo;</strong> &mdash;
+  Check that a location is selected in the Location dropdown. If data is still
+  missing, forecasts may not yet be available for that location or time period.</li>
+  <li><strong>Charts are not updating</strong> &mdash; Click the refresh icon next to
+  the time range selector. If the issue persists, try logging out and back in.</li>
+  <li><strong>Time looks wrong</strong> &mdash; The dashboard uses your browser&rsquo;s
+  time zone by default. Check your computer&rsquo;s clock and time zone settings.</li>
+  <li><strong>Cannot find the Alerts button</strong> &mdash; Text alert access is limited
+  to approved users. Contact SkyWind Solutions if you need access.</li>
+  <li><strong>Not receiving text alerts</strong> &mdash; Verify your phone number is
+  correct, your alert is enabled, and the current time is not within your quiet hours.
+  Also confirm you have not previously replied STOP to a Skywind alert message.</li>
+  <li><strong>Multiple browser tabs</strong> &mdash; You can open the same dashboard in
+  multiple tabs with different locations selected to monitor several locations at once.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="glossary">Glossary</h2>
+
+<table>
+  <thead>
+    <tr><th>Term</th><th>Definition</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Datum</strong></td><td>The reference level used to measure water height (e.g., Mean Sea Level).</td></tr>
+    <tr><td><strong>Cooldown</strong></td><td>The minimum time between repeated alert messages for the same subscription.</td></tr>
+    <tr><td><strong>Forecast</strong></td><td>A prediction of future conditions (tide levels, visibility) based on weather and ocean models.</td></tr>
+    <tr><td><strong>High Tide</strong></td><td>The peak water level during a tidal cycle.</td></tr>
+    <tr><td><strong>Low Tide</strong></td><td>The lowest water level during a tidal cycle.</td></tr>
+    <tr><td><strong>Quiet Hours</strong></td><td>A time window during which text alerts are not sent.</td></tr>
+    <tr><td><strong>Threshold</strong></td><td>The water level value that triggers an alert when crossed.</td></tr>
+    <tr><td><strong>Time Range</strong></td><td>The period of time displayed on the dashboard charts.</td></tr>
+    <tr><td><strong>Tooltip</strong></td><td>A small popup that appears when you hover your mouse over a chart, showing the exact value at that point.</td></tr>
+    <tr><td><strong>Visibility</strong></td><td>How far you can see clearly, affected by fog, haze, rain, and other conditions.</td></tr>
+  </tbody>
+</table>
+
+<p class="back-to-top"><a href="#">&uarr; Back to top</a></p>
+
+</body>
+</html>

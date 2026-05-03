@@ -223,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_portrichey'\n      AND model = '$model'\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -259,9 +259,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 9,
         "w": 4,
-        "x": 0,
+        "x": 20,
         "y": 12
       },
       "id": 2,
@@ -294,134 +294,6 @@
       ],
       "title": "Current Tide",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": false,
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Predicted Value"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "lengthft"
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "blue",
-                      "value": null
-                    },
-                    {
-                      "color": "green",
-                      "value": 0
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Current Time"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "dateTimeAsLocal"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Datum"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 20,
-        "x": 4,
-        "y": 12
-      },
-      "id": 4,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = 'grp_portrichey'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Predicted Value\",\n    datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Predicted Value\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
-          "refId": "A"
-        }
-      ],
-      "title": "Tide by Location",
-      "type": "table"
     },
     {
       "datasource": {
@@ -506,9 +378,9 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 20,
         "x": 0,
-        "y": 19
+        "y": 12
       },
       "id": 6,
       "options": {
@@ -532,7 +404,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_portrichey'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_portrichey'\n      AND model = '$model'\n  )\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -550,8 +422,8 @@
     "list": [
       {
         "current": {
-          "text": "tide_astro",
-          "value": "tide_astro"
+          "text": "tide_blend",
+          "value": "tide_blend"
         },
         "datasource": {
           "type": "postgres",

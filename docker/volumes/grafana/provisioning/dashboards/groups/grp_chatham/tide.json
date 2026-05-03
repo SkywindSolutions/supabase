@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Visibility forecast data for Gloucester MA Forecasts. Customer-facing dashboard. No observation data.",
+  "description": "Tide forecast data for Chatham Forecasts. Customer-facing dashboard. No observation data.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -36,7 +36,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Visibility (nmi)",
+            "axisLabel": "Tide Height (ft, ${datum})",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -79,24 +79,24 @@
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "lengthft"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "vismean"
+              "options": "tidemean"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Predicted Visibility"
+                "value": "Predicted Value"
               },
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
+                  "mode": "fixed",
+                  "fixedColor": "red"
                 }
               },
               {
@@ -118,18 +118,18 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "visub"
+              "options": "tideub"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Visibility (upper bound)"
+                "value": "Tide (upper bound)"
               },
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
+                  "mode": "fixed",
+                  "fixedColor": "blue"
                 }
               },
               {
@@ -148,7 +148,7 @@
               },
               {
                 "id": "custom.fillBelowTo",
-                "value": "vislb"
+                "value": "tidelb"
               },
               {
                 "id": "custom.fillOpacity",
@@ -159,18 +159,18 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "vislb"
+              "options": "tidelb"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Visibility (lower bound)"
+                "value": "Tide (lower bound)"
               },
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "yellow",
-                  "mode": "fixed"
+                  "mode": "fixed",
+                  "fixedColor": "blue"
                 }
               },
               {
@@ -196,8 +196,8 @@
         ]
       },
       "gridPos": {
-        "h": 9,
-        "w": 18,
+        "h": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -223,11 +223,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_gloucester'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_chatham'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_chatham'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_chatham'\n      AND model = '$model'\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
-      "title": "Visibility Forecast",
+      "title": "Tide Forecast",
       "type": "timeseries"
     },
     {
@@ -245,28 +245,24 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "blue",
                 "value": null
               },
               {
-                "color": "yellow",
-                "value": 1
-              },
-              {
                 "color": "green",
-                "value": 3
+                "value": 0
               }
             ]
           },
-          "unit": "nmi"
+          "unit": "lengthft"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 6,
-        "x": 18,
-        "y": 0
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 12
       },
       "id": 2,
       "options": {
@@ -292,159 +288,12 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_chatham'\n    AND model = '$model'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
-      "title": "Current Visibility",
+      "title": "Current Tide",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Probability",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "max": 1,
-          "min": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis15"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis \u2264 1.5 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis1"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis \u2264 1 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis075"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis \u2264 0.75 nmi)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "probvis05"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "P(vis \u2264 0.5 nmi)"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_gloucester'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15,\n  probvis1,\n  probvis075,\n  probvis05\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
-          "refId": "A"
-        }
-      ],
-      "title": "Probability of Reduced Visibility",
-      "type": "timeseries"
     },
     {
       "datasource": {
@@ -479,12 +328,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Predicted Visibility"
+              "options": "Predicted Value"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "nmi"
+                "value": "lengthft"
               },
               {
                 "id": "thresholds",
@@ -492,16 +341,12 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "red",
+                      "color": "blue",
                       "value": null
                     },
                     {
-                      "color": "yellow",
-                      "value": 0.5
-                    },
-                    {
                       "color": "green",
-                      "value": 1.5
+                      "value": 0
                     }
                   ]
                 }
@@ -518,7 +363,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Last Updated"
+              "options": "Current Time"
             },
             "properties": [
               {
@@ -526,14 +371,28 @@
                 "value": "dateTimeAsLocal"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datum"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
           }
         ]
       },
       "gridPos": {
         "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 18
+        "w": 20,
+        "x": 4,
+        "y": 12
       },
       "id": 4,
       "options": {
@@ -557,11 +416,127 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Predicted Visibility\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = 'grp_gloucester'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = 'grp_chatham'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Predicted Value\",\n    datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Predicted Value\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
           "refId": "A"
         }
       ],
-      "title": "Visibility by Location (latest per location)",
+      "title": "Tide by Location",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Tabular view of the full forecast shown in the tide chart.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^Date"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Predicted Value"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tide Upper Bound"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tide Lower Bound"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_chatham'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_chatham'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_chatham'\n      AND model = '$model'\n  )\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Tide Forecast Data",
       "type": "table"
     }
   ],
@@ -569,11 +544,15 @@
   "schemaVersion": 39,
   "tags": [
     "customer",
-    "visibility"
+    "tide"
   ],
   "templating": {
     "list": [
       {
+        "current": {
+          "text": "tide_nbm",
+          "value": "tide_nbm"
+        },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
@@ -595,28 +574,45 @@
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = 'grp_chatham' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
-        "query": "SELECT DISTINCT locname FROM forecast_data WHERE vismean IS NOT NULL AND group_id = 'grp_gloucester' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = 'grp_chatham' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
         "type": "query",
         "label": "Location"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT datum FROM forecast_data WHERE locname = '$location' AND datum IS NOT NULL LIMIT 1",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "datum",
+        "query": "SELECT DISTINCT datum FROM forecast_data WHERE locname = '$location' AND datum IS NOT NULL LIMIT 1",
+        "refresh": 1,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Datum"
       }
     ]
   },
   "time": {
     "from": "now",
-    "to": "now+24h"
+    "to": "now+7d"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Gloucester MA Forecasts \u2014 Visibility Forecast",
-  "uid": "visibility-grp_gloucester",
-  "version": 1,
+  "title": "Chatham Forecasts \u2014 Tide Forecast",
+  "uid": "tide-grp_chatham",
+  "version": 2,
   "weekStart": ""
 }

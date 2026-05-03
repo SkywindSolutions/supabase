@@ -41,3 +41,5 @@ services:
       TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
       CHECK_INTERVAL_SECONDS: ${ALERT_CHECK_INTERVAL:-300}
       LOG_LEVEL: ${ALERT_LOG_LEVEL:-INFO}
+    volumes:
+      - ./volumes/user-guide:/app/user-guide:ro

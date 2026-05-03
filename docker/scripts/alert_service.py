@@ -44,9 +44,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, time as dt_time, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import psycopg
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -65,6 +66,57 @@ TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
 
 CHECK_INTERVAL_SECONDS = int(os.environ.get("CHECK_INTERVAL_SECONDS", "300"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+# Per-group default tide model.  Single source of truth:
+# scripts/default_models.json (also consumed by generate_group_dashboards.py so
+# the dashboard's $model default and the SMS alert query stay in sync).
+# The file is re-read whenever its mtime changes, so editing it takes effect
+# within one CHECK_INTERVAL_SECONDS cycle — no service restart required.
+# Groups without a "tide" entry fall back to "tide_astro" (customer template default).
+DEFAULT_MODELS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "default_models.json"
+)
+_default_models_cache: dict[str, str] = {}
+_default_models_mtime: float = 0.0
+
+
+def get_default_tide_model(group_id: str) -> str:
+    """Return the configured default tide model for ``group_id``.
+
+    Re-reads ``default_models.json`` whenever the file's mtime changes so that
+    operators can update defaults without restarting the alert service.
+    Falls back to ``tide_astro`` when the file is missing/malformed or the
+    group has no ``tide`` entry.
+    """
+    global _default_models_cache, _default_models_mtime
+
+    try:
+        mtime = os.path.getmtime(DEFAULT_MODELS_PATH)
+    except OSError:
+        # File missing — use whatever was last cached, else fall through.
+        return _default_models_cache.get(group_id, "tide_astro")
+
+    if mtime != _default_models_mtime:
+        try:
+            with open(DEFAULT_MODELS_PATH) as fh:
+                data = json.load(fh)
+            groups = data.get("groups", {}) if isinstance(data, dict) else {}
+            new_cache: dict[str, str] = {}
+            for gid, dtypes in groups.items():
+                if (isinstance(gid, str) and not gid.startswith("_")
+                        and isinstance(dtypes, dict)):
+                    tide_model = dtypes.get("tide")
+                    if isinstance(tide_model, str):
+                        new_cache[gid] = tide_model
+            _default_models_cache = new_cache
+            _default_models_mtime = mtime
+            log.info("Reloaded default_models.json (%d tide entries)",
+                     len(new_cache))
+        except (OSError, json.JSONDecodeError) as exc:
+            log.warning("Failed to reload %s: %s — using last known values",
+                        DEFAULT_MODELS_PATH, exc)
+
+    return _default_models_cache.get(group_id, "tide_astro")
 
 # Reason: E.164 format validation — prevents malformed numbers reaching Twilio.
 PHONE_RE = re.compile(r"^\+[1-9]\d{6,14}$")
@@ -183,8 +235,8 @@ def get_user_teams(grafana_user: dict) -> list[dict]:
 def extract_group_ids(teams: list[dict]) -> list[str]:
     """Derive group_id values from Grafana team names.
 
-    Team names like 'Portrichey' or 'Boston Inner Harbor' map to group_ids like
-    ``grp_portrichey`` or ``grp_boston`` in the database.  Rather than reverse-
+    Team names like 'Portrichey' or 'Corpus Christi' map to group_ids like
+    ``grp_portrichey`` or ``grp_corpuschristi`` in the database.  Rather than reverse-
     engineering the naming convention, we fetch all distinct group_ids from the DB
     and match against team names using a normalized substring check.
     """
@@ -212,7 +264,7 @@ def extract_group_ids(teams: list[dict]) -> list[str]:
     for gid in all_group_ids:
         # Reason: normalize both sides by stripping prefixes, underscores, and
         # spaces so 'grp_portrichey' matches team 'Port Richey' and
-        # 'grp_cape_cod' matches 'Cape Cod Bay'.
+        # 'grp_clearwater' matches 'Clearwater'.
         gid_norm = gid.replace("grp_", "").replace("_", "")
         for tname in team_names:
             tname_norm = tname.replace(" ", "")
@@ -253,10 +305,14 @@ def _parse_time(val: str | None) -> dt_time | None:
     return dt_time(int(m.group(1)), int(m.group(2)))
 
 
-def _in_quiet_window(quiet_start: dt_time | str | None, quiet_end: dt_time | str | None) -> bool:
-    """Return True if the current UTC time-of-day falls within quiet hours.
+def _in_quiet_window(quiet_start: dt_time | str | None,
+                     quiet_end: dt_time | str | None,
+                     tz_name: str | None = None) -> bool:
+    """Return True if the current local time falls within quiet hours.
 
-    Handles wrap-around midnight (e.g. 22:00 → 06:00).
+    Uses the subscription's IANA timezone (e.g. 'America/New_York') so quiet
+    hours are evaluated in the user's local time.  Falls back to UTC if the
+    timezone is missing or invalid.  Handles wrap-around midnight.
     """
     if quiet_start is None or quiet_end is None:
         return False
@@ -268,7 +324,11 @@ def _in_quiet_window(quiet_start: dt_time | str | None, quiet_end: dt_time | str
     if quiet_start is None or quiet_end is None:
         return False
 
-    now_t = datetime.now(timezone.utc).time()
+    try:
+        tz = ZoneInfo(tz_name) if tz_name else timezone.utc
+    except (KeyError, Exception):
+        tz = timezone.utc
+    now_t = datetime.now(tz).time()
     if quiet_start <= quiet_end:
         return quiet_start <= now_t <= quiet_end
     # Wraps midnight: e.g. 22:00 → 06:00
@@ -390,6 +450,155 @@ def sms_terms():
     return SMS_TERMS_HTML, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+# ---------------------------------------------------------------------------
+# Opt-in form screenshot — public page showing what the consent UI looks like.
+# Provides a URL for Twilio toll-free verification (proof of opt-in collection).
+# ---------------------------------------------------------------------------
+
+OPT_IN_FORM_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skywind Solutions – SMS Opt-In Form</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         max-width: 750px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #222; }
+  h1 { font-size: 1.4rem; }
+  p.desc { color: #555; font-size: 0.95rem; margin-bottom: 24px; }
+  .modal {
+    background: #1a1f29; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px; padding: 24px; width: 520px; max-width: 100%;
+    font-family: sans-serif; color: #ddd; margin: 0 auto;
+  }
+  .modal h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #eee; }
+  .modal h4 { margin: 16px 0 10px; font-size: 14px; font-weight: 600; color: #ccc; }
+  .field-label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
+  .field-input {
+    width: 100%; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px; background: rgba(255,255,255,0.06); color: #ddd;
+    font-size: 13px; box-sizing: border-box; margin-bottom: 10px; height: 40px;
+  }
+  select.field-input { appearance: auto; -webkit-appearance: menulist; line-height: 40px; }
+  .consent-box {
+    margin: 12px 0; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+  }
+  .consent-box input[type=checkbox] {
+    margin-top: 2px; flex-shrink: 0; width: 20px; height: 20px; cursor: pointer;
+    accent-color: #6e9fff; outline: 2px solid rgba(255,255,255,0.4);
+    outline-offset: 1px; border-radius: 3px; color-scheme: dark;
+  }
+  .consent-box label {
+    font-size: 12px; color: #bbb; cursor: pointer; line-height: 1.4;
+  }
+  .consent-box a { color: #6e9fff; text-decoration: underline; }
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+  .btn {
+    padding: 8px 20px; border: none; border-radius: 4px; font-size: 13px;
+    cursor: pointer; font-weight: 500;
+  }
+  .btn-cancel { background: rgba(255,255,255,0.08); color: #aaa; }
+  .btn-add { background: #3871e0; color: #fff; }
+  .annotation {
+    margin-top: 24px; padding: 16px; background: #f0f7ff; border: 1px solid #c2d9f2;
+    border-radius: 6px; font-size: 0.9rem; color: #333;
+  }
+  .annotation strong { color: #1a5dab; }
+  .arrow { color: #ff5705; font-weight: bold; font-size: 18px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<h1>Skywind Solutions &ndash; SMS Alert Opt-In Form</h1>
+<p class="desc">This page shows the SMS alert subscription form as it appears in the
+Skywind Solutions dashboard. Users must check the consent checkbox before a subscription
+can be created.</p>
+
+<div class="modal">
+  <h3>SMS Alert Settings</h3>
+  <h4>New Alert Subscription</h4>
+
+  <span class="field-label">Group</span>
+  <select class="field-input"><option>Port Richey</option></select>
+
+  <span class="field-label">Location</span>
+  <select class="field-input"><option>Port Richey</option></select>
+
+  <span class="field-label">Phone Number (E.164, e.g. +15551234567)</span>
+  <input type="tel" class="field-input" value="+15551234567" readonly>
+
+  <div class="consent-box">
+    <input type="checkbox" checked id="consent-demo">
+    <label for="consent-demo">
+      <span class="arrow">&rarr;</span>
+      I agree to receive automated SMS tide alerts and acknowledge the
+      <a href="/api/alerts/sms-terms" target="_blank">SMS Alert Terms</a>.
+      Msg &amp; data rates may apply. Reply STOP to opt out.
+    </label>
+  </div>
+
+  <span class="field-label">Alert When Tide Goes...</span>
+  <select class="field-input"><option>Above</option></select>
+
+  <span class="field-label">Threshold Value (ft)</span>
+  <input type="number" class="field-input" value="0.25" readonly>
+
+  <span class="field-label">Minimum Time Between Alerts</span>
+  <select class="field-input"><option>1 hour</option></select>
+
+  <div class="btn-row">
+    <button class="btn btn-cancel" type="button">Cancel</button>
+    <button class="btn btn-add" type="button">Add Alert</button>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>How consent is collected:</strong> The checkbox above (highlighted with an arrow)
+  must be checked before the &ldquo;Add Alert&rdquo; button will submit the form.
+  If unchecked, the user sees an error: &ldquo;You must agree to the SMS Alert Terms.&rdquo;
+  The checkbox links to the full
+  <a href="/api/alerts/sms-terms">SMS Alert Terms &amp; Consent</a> page.
+  Upon submission, a <code>consented_at</code> timestamp is recorded in the database
+  alongside the subscription.
+</div>
+</body>
+</html>"""
+
+
+@app.route("/api/alerts/opt-in-form", methods=["GET"])
+def opt_in_form():
+    """Public page showing the opt-in form with consent checkbox."""
+    return OPT_IN_FORM_HTML, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+# ---------------------------------------------------------------------------
+# User Guide — requires Grafana session (any logged-in user).
+# HTML and images are served from USER_GUIDE_DIR (volume-mounted at runtime).
+# ---------------------------------------------------------------------------
+
+USER_GUIDE_DIR = os.environ.get("USER_GUIDE_DIR", "/app/user-guide")
+
+
+@app.route("/api/alerts/user-guide", methods=["GET"])
+def user_guide():
+    """Serve the dashboard user guide HTML (authenticated users only)."""
+    user = authenticate_grafana_request()
+    if not user:
+        return Response("Unauthorized – please log in to the dashboard first.", status=401)
+    return send_from_directory(USER_GUIDE_DIR, "index.html")
+
+
+@app.route("/api/alerts/user-guide/images/<path:filename>", methods=["GET"])
+def user_guide_image(filename: str):
+    """Serve user-guide screenshot images (authenticated users only)."""
+    user = authenticate_grafana_request()
+    if not user:
+        return Response("Unauthorized", status=401)
+    images_dir = os.path.join(USER_GUIDE_DIR, "images")
+    return send_from_directory(images_dir, filename)
+
+
 @app.route("/api/alerts/subscriptions", methods=["POST"])
 def create_subscription():
     """Create a new alert subscription."""
@@ -441,14 +650,16 @@ def create_subscription():
     if not data.get("sms_consent"):
         return _error("SMS consent is required")
 
+    tz_name = (data.get("timezone") or "America/New_York").strip()
+
     db_mutate(
         """INSERT INTO alert_subscriptions
                (group_id, grafana_login, phone_number, location_id,
                 location_name, alert_type, threshold_value, cooldown_minutes,
-                quiet_start, quiet_end, consented_at)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
+                quiet_start, quiet_end, timezone, consented_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
         (group_id, login, phone, location_id, location_name, alert_type,
-         threshold, cooldown, quiet_start, quiet_end),
+         threshold, cooldown, quiet_start, quiet_end, tz_name),
     )
 
     log.info(
@@ -521,6 +732,10 @@ def update_subscription(sub_id: int):
         params.append(qs)
         updates.append("quiet_end = %s")
         params.append(qe)
+
+    if "timezone" in data:
+        updates.append("timezone = %s")
+        params.append((data["timezone"] or "America/New_York").strip())
 
     if not updates:
         return _error("No fields to update")
@@ -681,9 +896,11 @@ def send_sms(to_number: str, body: str) -> bool:
 def check_alerts() -> None:
     """Query active subscriptions and trigger SMS when thresholds are breached.
 
-    Compares the latest interpolated tidemean value for each subscribed location
-    against the subscription's threshold.  Respects cooldown_minutes to avoid
-    repeat alerts.
+    For each subscription, scans the next 7 days of forecast data using the
+    group's default tide model (tide_astro or tide_nbm).  For tide_nbm, only
+    the most recent forecast run (MAX startdt) is used.  If any timestamps
+    breach the threshold, sends an SMS listing up to 3 breach times.
+    Respects cooldown_minutes to avoid repeat alerts.
     """
     log.debug("Running alert check cycle")
 
@@ -702,57 +919,111 @@ def check_alerts() -> None:
         log.debug("No active subscriptions to check")
         return
 
-    # Batch-fetch current tide values for all relevant (group_id, locid) pairs.
+    # Group subscriptions by (group_id, location_id) pair.
     pairs = {(s["group_id"], s["location_id"]) for s in subs}
 
-    current_values: dict[tuple[str, str], float] = {}
+    # For each pair, fetch all future breach-eligible rows using the correct model.
+    # Key: (group_id, loc_id) → list of (timestamp, tidemean) rows.
+    forecast_rows: dict[tuple[str, str], list[dict]] = {}
+
     for group_id, loc_id in pairs:
+        model = get_default_tide_model(group_id)
+
         try:
-            rows = db_execute(
-                """SELECT tidemean FROM forecast_data
-                    WHERE group_id = %s
-                      AND locid = %s
-                      AND tidemean IS NOT NULL
-                      AND timestamp >= NOW()
-                      AND timestamp <= NOW() + INTERVAL '7 days'
-                    ORDER BY timestamp
-                    LIMIT 1""",
-                (group_id, loc_id),
-            )
-            if rows and rows[0]["tidemean"] is not None:
-                current_values[(group_id, loc_id)] = float(rows[0]["tidemean"])
+            if model == "tide_nbm":
+                # For tide_nbm, restrict to the most recent forecast run.
+                rows = db_execute(
+                    """SELECT timestamp, tidemean FROM forecast_data
+                        WHERE group_id = %s
+                          AND locid = %s
+                          AND model = 'tide_nbm'
+                          AND tidemean IS NOT NULL
+                          AND timestamp >= NOW()
+                          AND timestamp <= NOW() + INTERVAL '7 days'
+                          AND startdt = (
+                              SELECT MAX(startdt) FROM forecast_data
+                              WHERE group_id = %s
+                                AND locid = %s
+                                AND model = 'tide_nbm'
+                                AND tidemean IS NOT NULL
+                                AND timestamp >= NOW()
+                          )
+                        ORDER BY timestamp""",
+                    (group_id, loc_id, group_id, loc_id),
+                )
+            else:
+                # tide_astro — no startdt filtering needed (startdt is NULL).
+                rows = db_execute(
+                    """SELECT timestamp, tidemean FROM forecast_data
+                        WHERE group_id = %s
+                          AND locid = %s
+                          AND model = %s
+                          AND tidemean IS NOT NULL
+                          AND timestamp >= NOW()
+                          AND timestamp <= NOW() + INTERVAL '7 days'
+                        ORDER BY timestamp""",
+                    (group_id, loc_id, model),
+                )
+
+            forecast_rows[(group_id, loc_id)] = rows or []
         except Exception as exc:
-            log.error("Failed to query tide for %s/%s: %s", group_id, loc_id, exc)
+            log.error("Failed to query tide for %s/%s (model=%s): %s",
+                      group_id, loc_id, model, exc)
 
     triggered_count = 0
     for sub in subs:
         key = (sub["group_id"], sub["location_id"])
-        if key not in current_values:
+        rows = forecast_rows.get(key, [])
+        if not rows:
             continue
 
         # Reason: skip this subscription if current time falls within quiet hours.
-        if _in_quiet_window(sub.get("quiet_start"), sub.get("quiet_end")):
+        if _in_quiet_window(sub.get("quiet_start"), sub.get("quiet_end"),
+                            sub.get("timezone")):
             continue
 
-        value = current_values[key]
         threshold = sub["threshold_value"]
-        breached = False
 
-        if sub["alert_type"] == "above" and value >= threshold:
-            breached = True
-        elif sub["alert_type"] == "below" and value <= threshold:
-            breached = True
+        # Find all timestamps where the threshold is breached.
+        breaches = []
+        for row in rows:
+            value = float(row["tidemean"])
+            if sub["alert_type"] == "above" and value >= threshold:
+                breaches.append((row["timestamp"], value))
+            elif sub["alert_type"] == "below" and value <= threshold:
+                breaches.append((row["timestamp"], value))
 
-        if not breached:
+        if not breaches:
             continue
 
         loc_display = sub["location_name"] or sub["location_id"]
         direction = "above" if sub["alert_type"] == "above" else "below"
-        units = "ft"  # NOTE: could be made dynamic if unit data is stored per-location.
+        units = "ft"
+
+        # Build message with up to 3 breach times.
+        detail_lines = []
+        try:
+            sub_tz = ZoneInfo(sub.get("timezone") or "America/New_York")
+        except (KeyError, Exception):
+            sub_tz = ZoneInfo("America/New_York")
+        for ts, val in breaches[:3]:
+            try:
+                ts_local = ts.astimezone(sub_tz)
+                tz_abbr = ts_local.strftime("%Z")
+                ts_str = ts_local.strftime(f"%b %d %I:%M %p {tz_abbr}")
+            except Exception:
+                ts_str = str(ts)
+            detail_lines.append(f"  {ts_str}: {val:.2f} {units}")
+
+        extra = ""
+        if len(breaches) > 3:
+            extra = f" (+{len(breaches) - 3} more times)"
 
         body = (
-            f"Skywind Tide Alert: {loc_display} tide is {value:.2f} {units}, "
-            f"which is {direction} your threshold of {threshold:.2f} {units}."
+            f"SkyWind Tide Alert: {loc_display} water level will go "
+            f"{direction} your threshold of {threshold:.2f} {units} "
+            f"in the next 7 days{extra}:\n"
+            + "\n".join(detail_lines)
         )
 
         if send_sms(sub["phone_number"], body):

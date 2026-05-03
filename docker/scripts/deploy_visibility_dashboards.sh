@@ -36,8 +36,6 @@ echo "--- Validating provisioned dashboards ---"
 DASHBOARDS=(
     "customer-visibility"
     "internal-visibility"
-    "visibility-grp_boston"
-    "visibility-grp_gloucester"
     "visibility-grp_corpuschristi"
 )
 

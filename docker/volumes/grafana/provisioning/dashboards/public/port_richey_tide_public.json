@@ -223,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_astro'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = 'Port Richey'\n      AND group_id = 'grp_portrichey'\n      AND model = 'tide_blend'\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -288,7 +288,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = 'Port Richey'\n    AND group_id = 'grp_portrichey'\n    AND model = 'tide_astro'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    forecastdtutc AS timestamp,\n    tidemean,\n    LEAD(forecastdtutc) OVER (ORDER BY forecastdtutc) AS next_timestamp,\n    LEAD(tidemean) OVER (ORDER BY forecastdtutc) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND locname = 'Port Richey'\n    AND group_id = 'grp_portrichey'\n    AND model = 'tide_blend'\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= NOW()::TIMESTAMPTZ\n        AND startdt >= NOW()::TIMESTAMPTZ - INTERVAL '6 hours'\n        AND locname = 'Port Richey'\n        AND group_id = 'grp_portrichey'\n        AND model = 'tide_blend'\n    )\n  ORDER BY forecastdtutc\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -327,7 +327,7 @@
       },
       "id": 3,
       "options": {
-        "content": "<div style=\"line-height:1.6;\"><strong>Public dashboard scope</strong><br />Customer: Port Richey<br />Location: Port Richey<br />Model: tide_astro<br />Datum: MSL<br />Time window: now to now+7d</div>",
+        "content": "<div style=\"line-height:1.6;\"><strong>Public dashboard scope</strong><br />Customer: Port Richey<br />Location: Port Richey<br />Model: tide_blend<br />Datum: MSL<br />Time window: now to now+7d</div>",
         "mode": "html"
       },
       "pluginVersion": "12.4.1",
@@ -443,7 +443,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_astro'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = 'Port Richey'\n      AND group_id = 'grp_portrichey'\n      AND model = 'tide_blend'\n  )\nORDER BY 1",
           "refId": "A"
         }
       ],

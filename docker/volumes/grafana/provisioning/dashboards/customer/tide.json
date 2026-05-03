@@ -223,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -532,7 +532,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n  )\nORDER BY 1",
           "refId": "A"
         }
       ],

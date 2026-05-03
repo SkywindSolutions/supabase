@@ -18,10 +18,12 @@
 #        - Internal  team → Editor on both base folders + all group folders
 #        - Per-group teams → Viewer on their own folder only
 #   3. Creates one test user per group:
-#        - test_boston      (password in .env as TEST_PW_BOSTON)
-#        - test_cape_cod    (password in .env as TEST_PW_CAPE_COD)
-#        - test_portland    (password in .env as TEST_PW_PORTLAND)
-#        - test_gloucester  (password in .env as TEST_PW_GLOUCESTER)
+#        - test_corpuschristi (password in .env as TEST_PW_CORPUSCHRISTI)
+#        - corpus_christi    (password in .env as PW_CORPUS_CHRISTI)
+#        - test_chatham      (password in .env as TEST_PW_CHATHAM)
+#        - chatham           (password in .env as PW_CHATHAM)
+#        - test_portrichey  (password in .env as TEST_PW_PORTRICHEY)
+#        - test_clearwater   (password in .env as TEST_PW_CLEARWATER)
 #        - test_internal    (password in .env as TEST_PW_INTERNAL)
 #   4. Adds each user to their appropriate team.
 #   5. Sets each user's Grafana home dashboard preference so they land on
@@ -68,13 +70,13 @@ _get_env() { grep "^${1}=" "$ENV_FILE" | head -1 | cut -d= -f2- || true; }
 
 GRAFANA_ADMIN_USER=$(_get_env GRAFANA_ADMIN_USER)
 GRAFANA_ADMIN_PASSWORD=$(_get_env GRAFANA_ADMIN_PASSWORD)
-TEST_PW_BOSTON=${TEST_PW_BOSTON:-$(_get_env TEST_PW_BOSTON)}
-TEST_PW_CAPE_COD=${TEST_PW_CAPE_COD:-$(_get_env TEST_PW_CAPE_COD)}
-TEST_PW_PORTLAND=${TEST_PW_PORTLAND:-$(_get_env TEST_PW_PORTLAND)}
-TEST_PW_GLOUCESTER=${TEST_PW_GLOUCESTER:-$(_get_env TEST_PW_GLOUCESTER)}
 TEST_PW_INTERNAL=${TEST_PW_INTERNAL:-$(_get_env TEST_PW_INTERNAL)}
 TEST_PW_PORTRICHEY=${TEST_PW_PORTRICHEY:-$(_get_env TEST_PW_PORTRICHEY)}
 TEST_PW_CLEARWATER=${TEST_PW_CLEARWATER:-$(_get_env TEST_PW_CLEARWATER)}
+TEST_PW_CORPUSCHRISTI=${TEST_PW_CORPUSCHRISTI:-$(_get_env TEST_PW_CORPUSCHRISTI)}
+PW_CORPUS_CHRISTI=${PW_CORPUS_CHRISTI:-$(_get_env PW_CORPUS_CHRISTI)}
+TEST_PW_CHATHAM=${TEST_PW_CHATHAM:-$(_get_env TEST_PW_CHATHAM)}
+PW_CHATHAM=${PW_CHATHAM:-$(_get_env PW_CHATHAM)}
 
 : "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER not set in .env}"
 : "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD not set in .env}"
@@ -91,13 +93,13 @@ GRAFANA_URL="http://${GRAFANA_INTERNAL_IP}:3000"
 AUTH="${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}"
 
 # Apply safe defaults if not set in .env or environment
-TEST_PW_BOSTON="${TEST_PW_BOSTON:-TestBoston2026!}"
-TEST_PW_CAPE_COD="${TEST_PW_CAPE_COD:-TestCapeCod2026!}"
-TEST_PW_PORTLAND="${TEST_PW_PORTLAND:-TestPortland2026!}"
-TEST_PW_GLOUCESTER="${TEST_PW_GLOUCESTER:-TestGloucester2026!}"
 TEST_PW_INTERNAL="${TEST_PW_INTERNAL:-TestInternal2026!}"
 TEST_PW_PORTRICHEY="${TEST_PW_PORTRICHEY:-PortRichey2026!}"
 TEST_PW_CLEARWATER="${TEST_PW_CLEARWATER:-TestClearwater2026!}"
+TEST_PW_CORPUSCHRISTI="${TEST_PW_CORPUSCHRISTI:-CorpusChristi2026!}"
+PW_CORPUS_CHRISTI="${PW_CORPUS_CHRISTI:-CorpusChristi2026!}"
+TEST_PW_CHATHAM="${TEST_PW_CHATHAM:-Chatham2026!}"
+PW_CHATHAM="${PW_CHATHAM:-Chatham2026!}"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -276,40 +278,38 @@ CUSTOMERS_TEAM_ID=$(ensure_team "Customers")
 
 # Per-group teams (one per customer group)
 log "=== Step 2: Create per-group customer teams ==="
-TEAM_BOSTON=$(ensure_team "Boston Inner Harbor")
-TEAM_CAPE_COD=$(ensure_team "Cape Cod Bay")
-TEAM_PORTLAND=$(ensure_team "Portland ME")
-TEAM_GLOUCESTER=$(ensure_team "Gloucester MA")
 TEAM_PORTRICHEY=$(ensure_team "Portrichey")
 TEAM_CLEARWATER=$(ensure_team "Clearwater")
+TEAM_CORPUSCHRISTI=$(ensure_team "Corpus Christi")
+TEAM_CHATHAM=$(ensure_team "Chatham")
 
 log "=== Step 3: Create test user accounts ==="
-USER_BOSTON=$(ensure_user "test_boston"     "Test Boston"     "test_boston@skywind.internal"     "$TEST_PW_BOSTON")
-USER_CAPE_COD=$(ensure_user "test_cape_cod" "Test Cape Cod"   "test_cape_cod@skywind.internal"   "$TEST_PW_CAPE_COD")
-USER_PORTLAND=$(ensure_user "test_portland" "Test Portland"   "test_portland@skywind.internal"   "$TEST_PW_PORTLAND")
-USER_GLOUCESTER=$(ensure_user "test_gloucester" "Test Gloucester" "test_gloucester@skywind.internal" "$TEST_PW_GLOUCESTER")
 USER_PORTRICHEY=$(ensure_user "test_portrichey" "Test Portrichey" "test_portrichey@skywind.internal" "${TEST_PW_PORTRICHEY:-PortRichey2026!}")
 USER_CLEARWATER=$(ensure_user "test_clearwater" "Test Clearwater" "test_clearwater@skywind.internal" "${TEST_PW_CLEARWATER:-TestClearwater2026!}")
+USER_CORPUSCHRISTI=$(ensure_user "test_corpuschristi" "Test Corpus Christi" "test_corpuschristi@skywind.internal" "${TEST_PW_CORPUSCHRISTI:-CorpusChristi2026!}")
+USER_CORPUS_CHRISTI=$(ensure_user "corpus_christi" "Corpus Christi" "corpus_christi@skywind.internal" "${PW_CORPUS_CHRISTI:-CorpusChristi2026!}")
+USER_CHATHAM=$(ensure_user "test_chatham" "Test Chatham" "test_chatham@skywind.internal" "${TEST_PW_CHATHAM:-Chatham2026!}")
+USER_CHATHAM_CUST=$(ensure_user "chatham" "Chatham" "chatham@skywind.internal" "${PW_CHATHAM:-Chatham2026!}")
 USER_INTERNAL=$(ensure_user "test_internal" "Test Internal"   "test_internal@skywind.internal"   "$TEST_PW_INTERNAL")
 
 log "=== Step 4: Assign users to teams ==="
-add_user_to_team "$TEAM_BOSTON"     "$USER_BOSTON"
-add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_BOSTON"
-
-add_user_to_team "$TEAM_CAPE_COD"   "$USER_CAPE_COD"
-add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CAPE_COD"
-
-add_user_to_team "$TEAM_PORTLAND"   "$USER_PORTLAND"
-add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PORTLAND"
-
-add_user_to_team "$TEAM_GLOUCESTER" "$USER_GLOUCESTER"
-add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_GLOUCESTER"
-
 add_user_to_team "$TEAM_PORTRICHEY" "$USER_PORTRICHEY"
 add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PORTRICHEY"
 
 add_user_to_team "$TEAM_CLEARWATER" "$USER_CLEARWATER"
 add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CLEARWATER"
+
+add_user_to_team "$TEAM_CORPUSCHRISTI" "$USER_CORPUSCHRISTI"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CORPUSCHRISTI"
+
+add_user_to_team "$TEAM_CORPUSCHRISTI" "$USER_CORPUS_CHRISTI"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CORPUS_CHRISTI"
+
+add_user_to_team "$TEAM_CHATHAM" "$USER_CHATHAM"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CHATHAM"
+
+add_user_to_team "$TEAM_CHATHAM" "$USER_CHATHAM_CUST"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CHATHAM_CUST"
 
 add_user_to_team "$INTERNAL_TEAM_ID" "$USER_INTERNAL"
 
@@ -319,12 +319,10 @@ declare -A FOLDER_UIDS=(
     ["customer-dashboards"]="customer-dashboards"
     ["internal-dashboards"]="internal-dashboards"
     ["public-dashboards"]="public-dashboards"
-    ["boston"]="cust-grp-boston"
-    ["cape_cod"]="cust-grp-cape-cod"
-    ["portland"]="cust-grp-portland"
-    ["gloucester"]="cust-grp-gloucester"
     ["portrichey"]="cust-grp-portrichey"
     ["clearwater"]="cust-grp-clearwater"
+    ["corpuschristi"]="cust-grp-corpuschristi"
+    ["chatham"]="cust-grp-chatham"
 )
 
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
@@ -333,30 +331,26 @@ patch_folder_team_permission "${FOLDER_UIDS[internal-dashboards]}" "$INTERNAL_TE
 patch_folder_team_permission "${FOLDER_UIDS[public-dashboards]}" "$INTERNAL_TEAM_ID" 1
 
 # Internal team also gets access to all group folders (for support/debugging)
-patch_folder_team_permission "${FOLDER_UIDS[boston]}" "$INTERNAL_TEAM_ID" 1
-patch_folder_team_permission "${FOLDER_UIDS[cape_cod]}" "$INTERNAL_TEAM_ID" 1
-patch_folder_team_permission "${FOLDER_UIDS[portland]}" "$INTERNAL_TEAM_ID" 1
-patch_folder_team_permission "${FOLDER_UIDS[gloucester]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[corpuschristi]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$INTERNAL_TEAM_ID" 1
 
 # Per-group teams: Viewer on their folder only
-patch_folder_team_permission "${FOLDER_UIDS[boston]}" "$TEAM_BOSTON" 1
-patch_folder_team_permission "${FOLDER_UIDS[cape_cod]}" "$TEAM_CAPE_COD" 1
-patch_folder_team_permission "${FOLDER_UIDS[portland]}" "$TEAM_PORTLAND" 1
-patch_folder_team_permission "${FOLDER_UIDS[gloucester]}" "$TEAM_GLOUCESTER" 1
 patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$TEAM_PORTRICHEY" 1
 patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$TEAM_CLEARWATER" 1
+patch_folder_team_permission "${FOLDER_UIDS[corpuschristi]}" "$TEAM_CORPUSCHRISTI" 1
+patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$TEAM_CHATHAM" 1
 
 log "=== Step 6: Set home dashboards for test users ==="
 # Customer accounts: resolve primary dashboard from the group provisioning folder
 # (visibility > wind > tide priority; skipped gracefully if nothing is found).
-set_user_home_dashboard "test_boston"     "$TEST_PW_BOSTON"     "$(resolve_home_dashboard_uid grp_boston)"
-set_user_home_dashboard "test_cape_cod"   "$TEST_PW_CAPE_COD"   "$(resolve_home_dashboard_uid grp_cape_cod)"
-set_user_home_dashboard "test_portland"   "$TEST_PW_PORTLAND"   "$(resolve_home_dashboard_uid grp_portland)"
-set_user_home_dashboard "test_gloucester" "$TEST_PW_GLOUCESTER"  "$(resolve_home_dashboard_uid grp_gloucester)"
 set_user_home_dashboard "test_portrichey" "$TEST_PW_PORTRICHEY"  "$(resolve_home_dashboard_uid grp_portrichey)"
 set_user_home_dashboard "test_clearwater" "$TEST_PW_CLEARWATER"  "$(resolve_home_dashboard_uid grp_clearwater)"
+set_user_home_dashboard "test_corpuschristi" "$TEST_PW_CORPUSCHRISTI"  "$(resolve_home_dashboard_uid grp_corpuschristi)"
+set_user_home_dashboard "corpus_christi" "$PW_CORPUS_CHRISTI"  "$(resolve_home_dashboard_uid grp_corpuschristi)"
+set_user_home_dashboard "test_chatham" "$TEST_PW_CHATHAM"  "$(resolve_home_dashboard_uid grp_chatham)"
+set_user_home_dashboard "chatham" "$PW_CHATHAM"  "$(resolve_home_dashboard_uid grp_chatham)"
 
 # Internal account: always land on the internal visibility dashboard
 set_user_home_dashboard "test_internal"   "$TEST_PW_INTERNAL"    "internal-visibility"
@@ -366,10 +360,12 @@ log ""
 log "Test accounts created:"
 log "  Username          Password env var       Team"
 log "  ---------------   --------------------   ----------------------"
-log "  test_boston       TEST_PW_BOSTON         Boston Inner Harbor + Customers"
-log "  test_cape_cod     TEST_PW_CAPE_COD       Cape Cod Bay + Customers"
-log "  test_portland     TEST_PW_PORTLAND       Portland ME + Customers"
-log "  test_gloucester   TEST_PW_GLOUCESTER     Gloucester MA + Customers"
+log "  test_portrichey  TEST_PW_PORTRICHEY     Portrichey + Customers"
+log "  test_clearwater   TEST_PW_CLEARWATER     Clearwater + Customers"
+log "  test_corpuschristi TEST_PW_CORPUSCHRISTI  Corpus Christi + Customers"
+log "  corpus_christi     PW_CORPUS_CHRISTI      Corpus Christi + Customers"
+log "  test_chatham       TEST_PW_CHATHAM        Chatham + Customers"
+log "  chatham            PW_CHATHAM             Chatham + Customers"
 log "  test_internal     TEST_PW_INTERNAL       Internal"
 log ""
 log "To change a test password, update the variable in .env and re-run this script."

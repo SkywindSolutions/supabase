@@ -50,29 +50,17 @@ providers:
   # provisioned and will not appear in the Grafana folder.
   # ----------------------------------------------------------------
 
-  # Boston Inner Harbor Forecasts (visibility)
-  - name: Boston Inner Harbor Forecasts
+  # Chatham Forecasts (tide)
+  - name: Chatham Forecasts
     orgId: 1
-    folder: Boston Inner Harbor Forecasts
-    folderUid: cust-grp-boston
+    folder: Chatham Forecasts
+    folderUid: cust-grp-chatham
     type: file
     disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_boston
-
-  # Cape Cod Bay Forecasts (tide)
-  - name: Cape Cod Bay Forecasts
-    orgId: 1
-    folder: Cape Cod Bay Forecasts
-    folderUid: cust-grp-cape-cod
-    type: file
-    disableDeletion: false
-    editable: false
-    updateIntervalSeconds: 30
-    options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_cape_cod
+      path: /etc/grafana/provisioning/dashboards/groups/grp_chatham
 
   # Clearwater Forecasts (tide)
   - name: Clearwater Forecasts
@@ -98,29 +86,17 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_corpuschristi
 
-  # Gloucester MA Forecasts (visibility)
-  - name: Gloucester MA Forecasts
+  # Ocean Cay Forecasts (wind)
+  - name: Ocean Cay Forecasts
     orgId: 1
-    folder: Gloucester MA Forecasts
-    folderUid: cust-grp-gloucester
+    folder: Ocean Cay Forecasts
+    folderUid: cust-grp-oceanCay
     type: file
     disableDeletion: false
     editable: false
     updateIntervalSeconds: 30
     options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_gloucester
-
-  # Portland ME Forecasts (wind)
-  - name: Portland ME Forecasts
-    orgId: 1
-    folder: Portland ME Forecasts
-    folderUid: cust-grp-portland
-    type: file
-    disableDeletion: false
-    editable: false
-    updateIntervalSeconds: 30
-    options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_portland
+      path: /etc/grafana/provisioning/dashboards/groups/grp_oceanCay
 
   # Port Richey Forecasts (tide)
   - name: Port Richey Forecasts

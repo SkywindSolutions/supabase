@@ -1,0 +1,375 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Visibility forecast verification (model: fog_1 vs obs: model_1). Bias, MAE, RMSE, ensemble coverage, and lead-time diagnostics over the selected window. Internal use only.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Headline metrics ($__timeFilter)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 1,
+      "title": "Bias (forecast − observed)",
+      "description": "Mean signed error over the selected window. Positive = over-forecasting visibility (i.e. forecast is clearer than observed).",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 5, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 3, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "auto" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(error) AS bias\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 2,
+      "title": "MAE",
+      "description": "Mean absolute error. Lower is better.",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 5, "x": 5, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 3, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "auto" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(ABS(error)) AS mae\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 3,
+      "title": "RMSE",
+      "description": "Root mean squared error. Penalises large errors more than MAE.",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 5, "x": 10, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 3, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "auto" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SQRT(AVG(error*error)) AS rmse\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 4,
+      "title": "Sample N",
+      "description": "Number of matched (forecast, observation) pairs in the window.",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 5, "x": 15, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "auto" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS n\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 5,
+      "title": "Obs inside ensemble envelope",
+      "description": "Fraction of observations falling between vislb and visub. ~80–90% is a well-calibrated ensemble for nominal 80%/90% bounds.",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "auto" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(in_envelope::float) AS pct_inside\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND forecast_lb IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 6,
+      "title": "Daily Bias and MAE",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "pointSize": 5, "showPoints": "auto", "axisLabel": "Visibility error (nmi)" },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(error)        AS \"Bias\",\n       AVG(ABS(error))   AS \"MAE\"\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 7,
+      "title": "Daily MAE by lead-time bucket",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "pointSize": 5, "showPoints": "auto", "axisLabel": "MAE (nmi)" },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       lead_bucket AS metric,\n       AVG(ABS(error)) AS mae\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2\nORDER BY 1, 2"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 8,
+      "title": "Sample count per lead bucket",
+      "type": "barchart",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisLabel": "Pairs" }, "unit": "none" },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "orientation": "auto", "xField": "lead_bucket" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT lead_bucket, COUNT(*)::bigint AS n\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 9,
+      "title": "Forecast vs Observed (scatter)",
+      "description": "Each point is a matched (forecast, observation) pair. Both axes capped at 5 nmi. Perfect forecasts fall on the y=x diagonal.",
+      "type": "xychart",
+      "pluginVersion": "11.4.0",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 15 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 50,
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "pointShape": "circle",
+            "pointSize": { "fixed": 5 },
+            "pointStrokeWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "show": "points"
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "identity_y" },
+            "properties": [
+              { "id": "custom.show", "value": "lines" },
+              { "id": "custom.lineWidth", "value": 2 },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "mapping": "manual",
+        "series": [
+          {
+            "name": { "fixed": "Forecast vs Observed" },
+            "frame": { "matcher": { "id": "byIndex", "options": 0 } },
+            "x": { "matcher": { "id": "byName", "options": "observed_value" } },
+            "y": { "matcher": { "id": "byName", "options": "forecast_capped" } }
+          },
+          {
+            "name": { "fixed": "1:1 line" },
+            "frame": { "matcher": { "id": "byIndex", "options": 1 } },
+            "x": { "matcher": { "id": "byName", "options": "identity_x" } },
+            "y": { "matcher": { "id": "byName", "options": "identity_y" } }
+          }
+        ],
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT observed_value, forecast_capped\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT g::float AS identity_x, g::float AS identity_y FROM generate_series(0, 5, 0.1) g"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Operational threshold (vis ≤ 1.5 nmi)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "panels": []
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "id": 10,
+      "title": "Hits / Misses / False alarms / Correct negatives @ 1.5 nmi",
+      "description": "Contingency counts using vis ≤ 1.5 nmi as the event threshold. Phase 2 will turn these into POD / FAR / CSI / HSS.",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 25 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name", "orientation": "horizontal" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Hits\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Misses\",\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"False alarms\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"Correct negatives\"\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ]
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [ "internal", "visibility", "verification" ],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "grp_corpuschristi", "value": "grp_corpuschristi" },
+        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "definition": "SELECT DISTINCT group_id FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "group",
+        "options": [],
+        "query": "SELECT DISTINCT group_id FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Group"
+      },
+      {
+        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "definition": "SELECT DISTINCT locname FROM v_forecast_verification WHERE variable = 'visibility' AND group_id = '$group' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "location",
+        "options": [],
+        "query": "SELECT DISTINCT locname FROM v_forecast_verification WHERE variable = 'visibility' AND group_id = '$group' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location"
+      },
+      {
+        "current": { "text": "All", "value": "$__all" },
+        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "definition": "SELECT DISTINCT lead_bucket FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY CASE lead_bucket WHEN 'astro' THEN 0 WHEN '0-6h' THEN 1 WHEN '6-12h' THEN 2 WHEN '12-24h' THEN 3 WHEN '24-48h' THEN 4 WHEN '48-72h' THEN 5 WHEN '72h+' THEN 6 ELSE 9 END",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": "'astro','0-6h','6-12h','12-24h','24-48h','48-72h','72h+'",
+        "multi": true,
+        "name": "lead_bucket",
+        "options": [],
+        "query": "SELECT DISTINCT lead_bucket FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY CASE lead_bucket WHEN 'astro' THEN 0 WHEN '0-6h' THEN 1 WHEN '6-12h' THEN 2 WHEN '12-24h' THEN 3 WHEN '24-48h' THEN 4 WHEN '48-72h' THEN 5 WHEN '72h+' THEN 6 ELSE 9 END",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Lead-time bucket"
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Visibility Forecast Verification (Internal)",
+  "uid": "internal-visibility-verification",
+  "version": 1,
+  "weekStart": ""
+}

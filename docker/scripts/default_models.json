@@ -1,0 +1,13 @@
+{
+  "_comment": "Per-group, per-data-type default model. Single source of truth for both generate_group_dashboards.py (sets the dashboard's $model dropdown default) and alert_service.py (selects which model to evaluate for SMS alerts). Edit this file to change defaults; alert_service re-reads it on every check cycle (CHECK_INTERVAL_SECONDS).",
+  "_schema": "{ <group_id>: { <data_type>: <model_name> } }",
+  "_fallbacks": "alert_service falls back to 'tide_astro' for groups without a 'tide' entry.",
+  "groups": {
+    "grp_portrichey":    { "tide": "tide_blend" },
+    "grp_clearwater":    { "tide": "tide_astro" },
+    "grp_corpuschristi": { "visibility": "fog_1" },
+    "grp_chatham":       { "tide": "tide_nbm" },
+    "grp_oceanCay":      { "wind": "wind_nbm" },
+    "grp_sendero":       { "wind": "wind_nbm" }
+  }
+}

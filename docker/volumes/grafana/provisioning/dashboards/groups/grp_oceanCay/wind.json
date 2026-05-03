@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "7-day wind forecast \u2014 forecast fields only. No observation data. Customer-facing. For wind_nbm, data is shown for two heights (20 m and 60 m) and is keyed off the dashboard 'From' time as the model startdt.",
+  "description": "Wind forecast data for Ocean Cay Forecasts. Customer-facing dashboard. No observation data.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -203,7 +203,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 20\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = 20\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 20\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_oceanCay'\n      AND model = '$model'\n      AND height_m = 20\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -273,7 +273,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = 20 OR height_m IS NULL)\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND (height_m = 20 OR height_m IS NULL)\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -461,7 +461,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 60\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = 60\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 60\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_oceanCay'\n      AND model = '$model'\n      AND height_m = 60\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -531,7 +531,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND height_m = 60\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND height_m = 60\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -831,7 +831,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 20\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = 20\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 20\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_oceanCay'\n      AND model = '$model'\n      AND height_m = 20\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -1131,7 +1131,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 60\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = 60\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_oceanCay'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = 60\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = 'grp_oceanCay'\n      AND model = '$model'\n      AND height_m = 60\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -1250,7 +1250,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  locname AS \"Location\",\n  MAX(ts) AS \"Last Updated\",\n  MAX(CASE WHEN h = 20 OR h IS NULL THEN val END) AS \"Wind Speed @ 20 m\",\n  MAX(CASE WHEN h = 60 THEN val END) AS \"Wind Speed @ 60 m\"\nFROM (\n  SELECT DISTINCT ON (locname, height_m)\n    locname,\n    height_m AS h,\n    timestamp AS ts,\n    CASE WHEN model = 'wind_nbm' THEN windspdmean ELSE windspdmean END AS val\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, height_m, timestamp DESC\n) sub\nGROUP BY locname\nORDER BY locname",
+          "rawSql": "SELECT\n  locname AS \"Location\",\n  MAX(ts) AS \"Last Updated\",\n  MAX(CASE WHEN h = 20 OR h IS NULL THEN val END) AS \"Wind Speed @ 20 m\",\n  MAX(CASE WHEN h = 60 THEN val END) AS \"Wind Speed @ 60 m\"\nFROM (\n  SELECT DISTINCT ON (locname, height_m)\n    locname,\n    height_m AS h,\n    timestamp AS ts,\n    CASE WHEN model = 'wind_nbm' THEN windspdmean ELSE windspdmean END AS val\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = 'grp_oceanCay'\n    AND model = '$model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, height_m, timestamp DESC\n) sub\nGROUP BY locname\nORDER BY locname",
           "refId": "A"
         }
       ],
@@ -1268,30 +1268,8 @@
     "list": [
       {
         "current": {
-          "text": "group_alpha",
-          "value": "group_alpha"
-        },
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "group",
-        "options": [],
-        "query": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Group"
-      },
-      {
-        "current": {
-          "text": "GFS",
-          "value": "GFS"
+          "text": "wind_nbm",
+          "value": "wind_nbm"
         },
         "datasource": {
           "type": "postgres",
@@ -1302,7 +1280,6 @@
         "includeAll": false,
         "multi": false,
         "name": "model",
-        "options": [],
         "query": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
         "refresh": 2,
         "regex": "",
@@ -1311,21 +1288,16 @@
         "label": "Model"
       },
       {
-        "current": {
-          "text": "BOSTON_INNER",
-          "value": "BOSTON_INNER"
-        },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_oceanCay' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
-        "options": [],
-        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_oceanCay' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -1340,8 +1312,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Wind Forecast",
-  "uid": "customer-wind",
+  "title": "Ocean Cay Forecasts \u2014 Wind Forecast",
+  "uid": "wind-grp_oceanCay",
   "version": 3,
   "weekStart": ""
 }

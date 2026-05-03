@@ -223,7 +223,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' != 'tide_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'tide_nbm'\n  AND startdt = $__timeFrom()\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean,\n  tidelb,\n  tideub\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -602,6 +602,35 @@
                 "value": 0
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Blend Forecast"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -633,7 +662,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_astro'\n  AND timestamp >= $__timeFrom()::timestamptz - INTERVAL '7 days'\n  AND timestamp <= $__timeTo()::timestamptz\nORDER BY timestamp",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean,\n  astrotide,\n  prelimtide\nFROM forecast_data\nWHERE\n  (tidemean IS NOT NULL OR astrotide IS NOT NULL OR prelimtide IS NOT NULL)\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_astro'\n  AND timestamp >= $__timeFrom()::timestamptz - INTERVAL '7 days'\n  AND timestamp <= $__timeTo()::timestamptz\nORDER BY timestamp",
           "refId": "A"
         },
         {
@@ -644,11 +673,190 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean AS \"NBM Forecast\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_nbm'\n  AND startdt = $__timeFrom()\nORDER BY forecastdtutc",
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean AS \"NBM Forecast\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_nbm'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = 'tide_nbm'\n  )\nORDER BY forecastdtutc",
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean AS \"Blend Forecast\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = 'tide_blend'\n  )\nORDER BY forecastdtutc",
+          "refId": "C"
         }
       ],
       "title": "Observed vs. Forecast Tide",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Observed wind speed and direction from the tide_nbm forecast run. Uses the same startdt selection pattern as the tide_nbm forecast series: latest run on or before the dashboard 'From' time, looking back up to 6 hours.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Wind Speed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "velocityknot"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Wind Speed (kt)"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Wind Direction"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "degree"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Wind Direction (\u00b0)"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 360
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  windspd AS \"Wind Speed\",\n  winddir AS \"Wind Direction\"\nFROM forecast_data\nWHERE\n  locname = '$location'\n  AND group_id = '$group'\n  AND model = 'tide_nbm'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND startdt >= $__timeFrom()::timestamptz - INTERVAL '6 hours'\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = 'tide_nbm'\n  )\nORDER BY forecastdtutc",
+          "refId": "A"
+        }
+      ],
+      "title": "NBM Wind Observations (Speed & Direction)",
       "type": "timeseries"
     }
   ],

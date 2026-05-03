@@ -306,9 +306,9 @@
       // Apply Skywind branding and lock down customer UI actions.
       (function() {
         var defaultHeading = 'Welcome to Grafana';
-        var brandedHeading = 'Skywind Solutions Dashboard';
+        var brandedHeading = 'SkyWind Solutions Dashboard';
         var grafanaWordmark = 'Grafana';
-        var skywindWordmark = 'Skywind Solutions';
+        var skywindWordmark = 'SkyWind Solutions';
         var headingObserver;
         var rewriteAttempts = 0;
         var maxRewriteAttempts = 120;
@@ -681,7 +681,7 @@
           }
         });
 
-        // Inject "Powered by Skywind Solutions" footer bar in kiosk mode.
+        // Inject "Powered by SkyWind Solutions" footer bar in kiosk mode.
         function injectKioskFooter() {
           if (document.getElementById('skywind-kiosk-footer')) return;
           document.body.classList.add('skywind-kiosk-footer-active');
@@ -702,14 +702,19 @@
           // --- Footer container ---
           var footer = document.createElement('div');
           footer.id = 'skywind-kiosk-footer';
-          footer.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:40px;'
+          footer.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:52px;'
             + 'display:flex;align-items:center;justify-content:space-between;'
             + 'background:rgba(13,18,24,0.85);border-top:1px solid rgba(255,255,255,0.08);'
             + 'z-index:10000;pointer-events:none;padding:0 16px;box-sizing:border-box;';
 
-          // --- Left spacer (balances the right-side buttons) ---
+          // --- Left: disclaimer text (also balances the right-side buttons) ---
           var spacer = document.createElement('div');
-          spacer.style.cssText = 'flex:1;';
+          spacer.style.cssText = 'flex:1;font-family:sans-serif;font-size:9px;color:rgba(255,255,255,0.35);'
+            + 'line-height:1.3;max-width:420px;pointer-events:auto;';
+          spacer.textContent = 'Data and forecasts are provided for informational purposes only '
+            + 'and may contain inaccuracies. Users must independently verify all information '
+            + 'before making decisions. SkyWind Solutions assumes no liability for actions '
+            + 'taken based on this data.';
 
           // --- Center branding ---
           var center = document.createElement('div');
@@ -719,7 +724,7 @@
           label.style.cssText = 'font-family:sans-serif;font-size:11px;color:rgba(255,255,255,0.5);';
           var logo = document.createElement('img');
           logo.src = 'public/build/img/grafana_text_logo_dark.svg';
-          logo.alt = 'Skywind Solutions';
+          logo.alt = 'SkyWind Solutions';
           logo.style.cssText = 'height:22px;opacity:0.7;';
           center.appendChild(label);
           center.appendChild(logo);
@@ -735,6 +740,13 @@
             showPasswordModal();
           });
 
+          // User Guide link (opens in new tab)
+          var guideBtn = makeBtn('User Guide');
+          guideBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window.open('/api/alerts/user-guide', '_blank');
+          });
+
           // Sign Out button
           var outBtn = makeBtn('Sign Out');
           outBtn.addEventListener('click', function(e) {
@@ -743,6 +755,7 @@
           });
 
           actions.appendChild(pwBtn);
+          actions.appendChild(guideBtn);
           actions.appendChild(outBtn);
 
           footer.appendChild(spacer);
@@ -911,10 +924,19 @@
 
           var footer = document.createElement('div');
           footer.id = 'skywind-kiosk-footer';
-          footer.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:40px;'
-            + 'display:flex;align-items:center;justify-content:center;'
+          footer.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:52px;'
+            + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;'
             + 'background:rgba(13,18,24,0.85);border-top:1px solid rgba(255,255,255,0.08);'
-            + 'z-index:10000;padding:0 16px;box-sizing:border-box;';
+            + 'z-index:10000;padding:4px 16px;box-sizing:border-box;';
+
+          // Disclaimer line
+          var disc = document.createElement('div');
+          disc.style.cssText = 'font-family:sans-serif;font-size:9px;color:rgba(255,255,255,0.35);'
+            + 'line-height:1.2;text-align:center;max-width:600px;';
+          disc.textContent = 'Data and forecasts are provided for informational purposes only '
+            + 'and may contain inaccuracies. Users must independently verify all information '
+            + 'before making decisions. SkyWind Solutions assumes no liability for actions '
+            + 'taken based on this data.';
 
           var center = document.createElement('div');
           center.style.cssText = 'display:flex;align-items:center;gap:6px;';
@@ -923,10 +945,11 @@
           label.style.cssText = 'font-family:sans-serif;font-size:11px;color:rgba(255,255,255,0.5);';
           var logo = document.createElement('img');
           logo.src = 'public/build/img/grafana_text_logo_dark.svg';
-          logo.alt = 'Skywind Solutions';
+          logo.alt = 'SkyWind Solutions';
           logo.style.cssText = 'height:22px;opacity:0.7;';
           center.appendChild(label);
           center.appendChild(logo);
+          footer.appendChild(disc);
           footer.appendChild(center);
           document.body.appendChild(footer);
         }
@@ -948,7 +971,7 @@
         var role = (user.orgRole || '').toLowerCase();
         var isAdmin = user.isGrafanaAdmin || role === 'admin' || role === 'editor';
         // Reason: allow specific test accounts to access alerts before general rollout.
-        var alertTestUsers = ['test_portrichey'];
+        var alertTestUsers = ['test_portrichey', 'port_richey'];
         var isAlertTester = alertTestUsers.indexOf(user.login) !== -1;
         if (!isAdmin && !isAlertTester) return;
 
@@ -1341,6 +1364,7 @@
                 cooldown_minutes: parseInt(cooldownField.input.value, 10),
                 quiet_start: quietStartField.input.value || null,
                 quiet_end: quietEndField.input.value || null,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 sms_consent: true
               })
             })
