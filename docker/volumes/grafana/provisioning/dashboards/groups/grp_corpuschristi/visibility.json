@@ -371,7 +371,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 1.5 nmi)"
+                "value": "P(vis ≤ 1.5 nmi)"
               }
             ]
           }
@@ -585,7 +585,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Corpus Christi Forecasts \u2014 Visibility Forecast",
+  "title": "Corpus Christi Forecasts — Visibility Forecast",
   "uid": "visibility-grp_corpuschristi",
   "version": 1,
   "weekStart": ""

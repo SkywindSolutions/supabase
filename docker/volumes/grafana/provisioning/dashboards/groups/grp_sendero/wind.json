@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "7-day wind forecast — forecast fields only. No observation data. Customer-facing. For wind_nbm, data is shown for the selected/repeated height_m values and is keyed off the dashboard 'From' time as the model startdt.",
+  "description": "Wind forecast data for Sendero Forecasts. Customer-facing dashboard. No observation data.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -202,7 +202,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = 'grp_sendero'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -274,7 +274,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
@@ -379,12 +379,8 @@
                 "value": 1
               },
               {
-                "id": "custom.fillBelowTo",
-                "value": "winddirlb"
-              },
-              {
                 "id": "custom.fillOpacity",
-                "value": 10
+                "value": 0
               }
             ]
           },
@@ -415,6 +411,138 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "band_lo_top"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "band_lo_bot"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "band_lo_bot"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "band_hi_top"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "band_hi_bot"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "band_hi_bot"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
               }
             ]
           }
@@ -448,7 +576,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  MOD(MOD(winddirmean::numeric,360)+360,360) AS winddirmean,\n  MOD(MOD(winddirlb::numeric,360)+360,360) AS winddirlb,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS winddirub,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 0 ELSE MOD(MOD(winddirlb::numeric,360)+360,360) END AS band_lo_bot,\n  MOD(MOD(winddirub::numeric,360)+360,360) AS band_lo_top,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN MOD(MOD(winddirlb::numeric,360)+360,360) ELSE NULL END AS band_hi_bot,\n  CASE WHEN (MOD(MOD(winddirub::numeric,360)+360,360) < MOD(MOD(winddirlb::numeric,360)+360,360)) THEN 360 ELSE NULL END AS band_hi_top\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = 'grp_sendero'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -569,7 +697,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  locname AS \"Location\",\n  COALESCE(height_m, 20) AS \"Height (m)\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed\"\nFROM (\n  SELECT DISTINCT ON (locname, COALESCE(height_m, 20))\n    locname,\n    height_m,\n    timestamp,\n    windspdmean\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, COALESCE(height_m, 20), timestamp DESC, startdt DESC NULLS LAST\n) sub\nORDER BY locname, \"Height (m)\"",
+          "rawSql": "SELECT\n  locname AS \"Location\",\n  COALESCE(height_m, 20) AS \"Height (m)\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed\"\nFROM (\n  SELECT DISTINCT ON (locname, COALESCE(height_m, 20))\n    locname,\n    height_m,\n    timestamp,\n    windspdmean\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = 'grp_sendero'\n    AND model = '$model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, COALESCE(height_m, 20), timestamp DESC, startdt DESC NULLS LAST\n) sub\nORDER BY locname, \"Height (m)\"",
           "refId": "A"
         }
       ],
@@ -587,41 +715,18 @@
     "list": [
       {
         "current": {
-          "text": "group_alpha",
-          "value": "group_alpha"
-        },
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "group",
-        "options": [],
-        "query": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Group"
-      },
-      {
-        "current": {
-          "text": "GFS",
-          "value": "GFS"
+          "text": "wind_nbm",
+          "value": "wind_nbm"
         },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
         "definition": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "multi": false,
         "name": "model",
-        "options": [],
         "query": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
         "refresh": 2,
         "regex": "",
@@ -630,21 +735,16 @@
         "label": "Model"
       },
       {
-        "current": {
-          "text": "BOSTON_INNER",
-          "value": "BOSTON_INNER"
-        },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_sendero' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
-        "options": [],
-        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = 'grp_sendero' ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -660,13 +760,13 @@
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
+        "definition": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_sendero' ORDER BY height_m ASC",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "height_m",
         "options": [],
-        "query": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
+        "query": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_sendero' ORDER BY height_m ASC",
         "refresh": 2,
         "regex": "",
         "sort": 1,
@@ -681,8 +781,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Wind Forecast",
-  "uid": "customer-wind",
+  "title": "Sendero Forecasts — Wind Forecast",
+  "uid": "wind-grp_sendero",
   "version": 5,
   "weekStart": ""
 }

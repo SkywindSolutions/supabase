@@ -1,0 +1,2743 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Internal Mobile Bay dashboard combining visibility and wind forecasts, observation overlays, and visibility forecast verification diagnostics.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "id": 1,
+      "title": "Visibility Forecast and Observations",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Visibility (nmi)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted Visibility"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "visub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visibility (upper bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "vislb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vislb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visibility (lower bound)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  vismean,\n  vislb,\n  visub\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Visibility Forecast",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "nmi"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 19
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Visibility",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Probability",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "max": 1,
+          "min": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "probvis15"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "P(vis \u2264 1.5 nmi)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  probvis15\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Probability of Reduced Visibility",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Predicted Visibility"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "nmi"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "green",
+                      "value": 1.5
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last Updated"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 18,
+        "x": 6,
+        "y": 19
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (locname)\n  locname AS \"Location\",\n  timestamp AS \"Last Updated\",\n  vismean AS \"Predicted Visibility\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND group_id = '$group'\n  AND model = '$model'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY locname, timestamp DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Visibility by Location",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Visibility (nmi)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted Visibility"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "obsvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "nbmvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "NBM Visibility"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"time\",\n  vismean\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  f.timestamp AS \"time\",\n  LEAST(m1.nbmvis, 5.4) AS nbmvis\nFROM forecast_data f\nJOIN forecast_data m1\n  ON m1.locname = f.locname\n AND m1.group_id = f.group_id\n AND m1.startdt = f.startdt\n AND m1.fhr = f.fhr\n AND m1.model = 'model_1'\nWHERE\n  f.vismean IS NOT NULL\n  AND f.locname = '$location'\n  AND f.group_id = '$group'\n  AND f.model = '$model'\n  AND f.startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(f.timestamp)\nORDER BY f.timestamp",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  MAX(obsvis) AS obsvis\nFROM forecast_data\nWHERE\n  obsvis IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND timestamp >= $__timeFrom()::timestamptz - INTERVAL '7 days'\n  AND timestamp <= $__timeTo()::timestamptz\nGROUP BY timestamp\nORDER BY timestamp",
+          "refId": "C"
+        }
+      ],
+      "title": "Observed vs. Forecast Visibility (Model Run)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Visibility (nmi)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "nmi",
+          "min": 0,
+          "max": 5.5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vismean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "vismean (ensemble mean)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hrrrvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "hrrrvis (HRRR)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "nbmvis"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "nbmvis (NBM)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vismedian"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "vismedian (median)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  f.timestamp AS \"time\",\n  f.vismean,\n  f.hrrrvis,\n  LEAST(m1.nbmvis, 5.4) AS nbmvis,\n  f.vismedian\nFROM forecast_data f\nLEFT JOIN forecast_data m1\n  ON m1.locname = f.locname\n AND m1.group_id = f.group_id\n AND m1.startdt = f.startdt\n AND m1.fhr = f.fhr\n AND m1.model = 'model_1'\nWHERE\n  f.vismean IS NOT NULL\n  AND f.locname = '$location'\n  AND f.group_id = '$group'\n  AND f.model = '$model'\n  AND f.startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(f.timestamp)\nORDER BY f.timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Model Comparison \u2014 Model Run (vismean / hrrrvis / nbmvis / vismedian)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "nmi"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "nmi"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bias (forecast - obs)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "nmi"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": -0.25
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.5
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= $__timeFrom()::timestamptz\n    AND vismean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n)\nSELECT\n  timestamp AS \"Time\",\n  vismean AS \"Forecast (mean)\",\n  obsvis AS \"Observed\",\n  (vismean - obsvis) AS \"Bias (forecast - obs)\"\nFROM forecast_data\nWHERE\n  vismean IS NOT NULL\n  AND obsvis IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Forecast vs. Observation Bias (Model Run)",
+      "type": "table"
+    },
+    {
+      "type": "row",
+      "id": 9,
+      "title": "Wind Forecast and Observations",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Wind speed forecast at ${height_m} m. wind_nbm values are converted from m/s to knots and filtered to the most recent startdt at-or-before the 'From' time (within 6 h).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Wind Speed (kt)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted Wind Speed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Speed (upper bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "windspdlb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdlb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Speed (lower bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 0,
+        "y": 54
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean,\n  windspdlb,\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  windspdlb AS windspdlb,\n  windspdub AS windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Wind Speed Forecast (${height_m} m)",
+      "type": "timeseries",
+      "repeat": "height_m",
+      "repeatDirection": "v",
+      "maxPerRow": 1
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Most recent wind speed at-or-before now (${height_m} m).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 54
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Wind Speed (${height_m} m)",
+      "type": "stat",
+      "repeat": "height_m",
+      "repeatDirection": "v",
+      "maxPerRow": 1
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Wind direction forecast at ${height_m} m.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Direction (\u00b0)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted Wind Direction"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Direction (upper bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "winddirlb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirlb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Direction (lower bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 63
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Wind Direction Forecast (${height_m} m)",
+      "type": "timeseries",
+      "repeat": "height_m",
+      "repeatDirection": "v",
+      "maxPerRow": 1
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Latest wind speed per location and available height.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^Wind Speed$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "velocityknot"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 15
+                    },
+                    {
+                      "color": "red",
+                      "value": 25
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last Updated"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 72
+      },
+      "id": 13,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  locname AS \"Location\",\n  COALESCE(height_m, 20) AS \"Height (m)\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed\"\nFROM (\n  SELECT DISTINCT ON (locname, COALESCE(height_m, 20))\n    locname,\n    height_m,\n    timestamp,\n    windspdmean\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, COALESCE(height_m, 20), timestamp DESC, startdt DESC NULLS LAST\n) sub\nORDER BY locname, \"Height (m)\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Wind Speed by Location and Height (latest)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Observed vs forecast wind speed at ${height_m} m. Uses obs_wspd_kt from model_1 observation rows when available; legacy models can also use the existing windspd column.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Wind Speed (kt)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspd"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 79
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH u AS (\nSELECT\n  timestamp AS \"time\",\n  windspdmean AS windspdmean,\n  windspd AS windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  NULL::float AS windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  NULL::float AS windspdmean,\n  obs_wspd_kt AS windspd\nFROM forecast_data\nWHERE\n  obs_wspd_kt IS NOT NULL\n  AND fhr = 0\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'model_1'\n  AND height_m = ${height_m:raw}\n  AND $__timeFilter(forecastdtutc)\n)\nSELECT \"time\", MAX(windspdmean) AS windspdmean, MAX(windspd) AS windspd\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Observed vs. Forecast Wind Speed (${height_m} m)",
+      "type": "timeseries",
+      "repeat": "height_m",
+      "repeatDirection": "v",
+      "maxPerRow": 1
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Observed vs forecast wind direction at ${height_m} m. Uses obs_wdir_degrees from model_1 observation rows when available.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Direction (\u00b0)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast Direction (mean)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed Direction"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH u AS (\nSELECT\n  timestamp AS \"time\",\n  winddirmean AS winddirmean,\n  winddir AS winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  winddirmean AS winddirmean,\n  NULL::float AS winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  NULL::float AS winddirmean,\n  obs_wdir_degrees AS winddir\nFROM forecast_data\nWHERE\n  obs_wdir_degrees IS NOT NULL\n  AND fhr = 0\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'model_1'\n  AND height_m = ${height_m:raw}\n  AND $__timeFilter(forecastdtutc)\n)\nSELECT \"time\", MAX(winddirmean) AS winddirmean, MAX(winddir) AS winddir\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Observed vs. Forecast Wind Direction (${height_m} m)",
+      "type": "timeseries",
+      "repeat": "height_m",
+      "repeatDirection": "v",
+      "maxPerRow": 1
+    },
+    {
+      "type": "row",
+      "id": 16,
+      "title": "Visibility Forecast Verification",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "panels": []
+    },
+    {
+      "type": "row",
+      "id": 17,
+      "title": "Headline metrics ($__timeFilter)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 98
+      },
+      "panels": [],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 18,
+      "title": "Bias (forecast \u2212 observed)",
+      "description": "Mean signed error over the selected window. Positive = over-forecasting visibility (i.e. forecast is clearer than observed).",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 0,
+        "y": 99
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(error) AS bias\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 19,
+      "title": "MAE",
+      "description": "Mean absolute error. Lower is better.",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 5,
+        "y": 99
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(ABS(error)) AS mae\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 20,
+      "title": "RMSE",
+      "description": "Root mean squared error. Penalises large errors more than MAE.",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 10,
+        "y": 99
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SQRT(AVG(error*error)) AS rmse\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 21,
+      "title": "Sample N",
+      "description": "Number of matched (forecast, observation) pairs in the window.",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 15,
+        "y": 99
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS n\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 22,
+      "title": "Obs inside ensemble envelope",
+      "description": "Fraction of observations falling between vislb and visub. ~80\u201390% is a well-calibrated ensemble for nominal 80%/90% bounds.",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 99
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(in_envelope::float) AS pct_inside\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND forecast_lb IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 23,
+      "title": "Daily Bias and MAE",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 104
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Visibility error (nmi)"
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(error)        AS \"Bias\",\n       AVG(ABS(error))   AS \"MAE\"\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 24,
+      "title": "Daily MAE by lead-time bucket",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 104
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "MAE (nmi)"
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       lead_bucket AS metric,\n       AVG(ABS(error)) AS mae\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2\nORDER BY 1, 2"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 25,
+      "title": "Sample count per lead bucket",
+      "type": "barchart",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 113
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Pairs"
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT lead_bucket, COUNT(*)::bigint AS n\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 26,
+      "title": "Forecast vs Observed (scatter)",
+      "description": "Each point is a matched (forecast, observation) pair. Both axes capped at 5 nmi. Perfect forecasts fall on the y=x diagonal.",
+      "type": "xychart",
+      "pluginVersion": "11.4.0",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 113
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 50,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "pointShape": "circle",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointStrokeWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "show": "points"
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "identity_y"
+            },
+            "properties": [
+              {
+                "id": "custom.show",
+                "value": "lines"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "gray"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "mapping": "manual",
+        "series": [
+          {
+            "name": {
+              "fixed": "Forecast vs Observed"
+            },
+            "frame": {
+              "matcher": {
+                "id": "byIndex",
+                "options": 0
+              }
+            },
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "observed_value"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "forecast_capped"
+              }
+            }
+          },
+          {
+            "name": {
+              "fixed": "1:1 line"
+            },
+            "frame": {
+              "matcher": {
+                "id": "byIndex",
+                "options": 1
+              }
+            },
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "identity_x"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "identity_y"
+              }
+            }
+          }
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT observed_value, forecast_capped\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT g::float AS identity_x, g::float AS identity_y FROM generate_series(0, 5, 0.1) g"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "type": "row",
+      "id": 27,
+      "title": "Operational threshold (vis \u2264 1.5 nmi)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 122
+      },
+      "panels": [],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 28,
+      "title": "Hits / Misses / False alarms / Correct negatives @ 1.5 nmi",
+      "description": "Contingency counts using vis \u2264 1.5 nmi as the event threshold. Phase 2 will turn these into POD / FAR / CSI / HSS.",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 123
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Hits\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Misses\",\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"False alarms\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"Correct negatives\"\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "internal",
+    "wind",
+    "visibility",
+    "verification",
+    "combined"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "grp_mobilebay",
+          "value": "grp_mobilebay"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "group",
+        "options": [],
+        "query": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Group"
+      },
+      {
+        "current": {
+          "text": "fog_1",
+          "value": "fog_1"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT model FROM forecast_data WHERE group_id = '$group' AND (vismean IS NOT NULL OR windspdmean IS NOT NULL) ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "model",
+        "options": [],
+        "query": "SELECT DISTINCT model FROM forecast_data WHERE group_id = '$group' AND (vismean IS NOT NULL OR windspdmean IS NOT NULL) ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Model"
+      },
+      {
+        "current": {
+          "text": "Mobile Bay",
+          "value": "Mobile Bay"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE group_id = '$group' AND (vismean IS NOT NULL OR windspdmean IS NOT NULL OR nbmvis IS NOT NULL) ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "location",
+        "options": [],
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE group_id = '$group' AND (vismean IS NOT NULL OR windspdmean IS NOT NULL OR nbmvis IS NOT NULL) ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location"
+      },
+      {
+        "current": {
+          "text": "10",
+          "value": "10"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "height_m",
+        "options": [],
+        "query": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query",
+        "label": "Height (m)"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT lead_bucket FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY CASE lead_bucket WHEN 'astro' THEN 0 WHEN '0-6h' THEN 1 WHEN '6-12h' THEN 2 WHEN '12-24h' THEN 3 WHEN '24-48h' THEN 4 WHEN '48-72h' THEN 5 WHEN '72h+' THEN 6 ELSE 9 END",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "lead_bucket",
+        "options": [],
+        "query": "SELECT DISTINCT lead_bucket FROM v_forecast_verification WHERE variable = 'visibility' ORDER BY CASE lead_bucket WHEN 'astro' THEN 0 WHEN '0-6h' THEN 1 WHEN '6-12h' THEN 2 WHEN '12-24h' THEN 3 WHEN '24-48h' THEN 4 WHEN '48-72h' THEN 5 WHEN '72h+' THEN 6 ELSE 9 END",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Lead-time bucket",
+        "allValue": "'astro','0-6h','6-12h','12-24h','24-48h','48-72h','72h+'"
+      }
+    ]
+  },
+  "time": {
+    "from": "now",
+    "to": "now+24h"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Wind & Visibility Forecast (Internal)",
+  "uid": "internal-wind-visibility",
+  "version": 1,
+  "weekStart": ""
+}

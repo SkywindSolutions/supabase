@@ -27,9 +27,9 @@
 #        - test_internal    (password in .env as TEST_PW_INTERNAL)
 #   4. Adds each user to their appropriate team.
 #   5. Sets each user's Grafana home dashboard preference so they land on
-#      their group's primary dashboard after login (visibility > wind > tide
-#      priority for customer accounts; internal-visibility for the internal
-#      account).  Uses the user's own credentials — Grafana OSS does not
+#      their group's primary dashboard after login (combined wind+visibility >
+#      visibility > wind > tide priority for customer accounts;
+#      internal-visibility for the internal account). Uses the user's own credentials — Grafana OSS does not
 #      expose an admin API for setting another user's preferences.
 #
 # Authentication method: Grafana local accounts (no external IdP required).
@@ -77,6 +77,12 @@ TEST_PW_CORPUSCHRISTI=${TEST_PW_CORPUSCHRISTI:-$(_get_env TEST_PW_CORPUSCHRISTI)
 PW_CORPUS_CHRISTI=${PW_CORPUS_CHRISTI:-$(_get_env PW_CORPUS_CHRISTI)}
 TEST_PW_CHATHAM=${TEST_PW_CHATHAM:-$(_get_env TEST_PW_CHATHAM)}
 PW_CHATHAM=${PW_CHATHAM:-$(_get_env PW_CHATHAM)}
+PW_SENDERO=${PW_SENDERO:-$(_get_env PW_SENDERO)}
+TEST_PW_SENDERO=${TEST_PW_SENDERO:-$(_get_env TEST_PW_SENDERO)}
+PW_MSC=${PW_MSC:-$(_get_env PW_MSC)}
+TEST_PW_MSC=${TEST_PW_MSC:-$(_get_env TEST_PW_MSC)}
+PW_PASCAGOULA=${PW_PASCAGOULA:-$(_get_env PW_PASCAGOULA)}
+TEST_PW_PASCAGOULA=${TEST_PW_PASCAGOULA:-$(_get_env TEST_PW_PASCAGOULA)}
 
 : "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER not set in .env}"
 : "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD not set in .env}"
@@ -100,6 +106,12 @@ TEST_PW_CORPUSCHRISTI="${TEST_PW_CORPUSCHRISTI:-CorpusChristi2026!}"
 PW_CORPUS_CHRISTI="${PW_CORPUS_CHRISTI:-CorpusChristi2026!}"
 TEST_PW_CHATHAM="${TEST_PW_CHATHAM:-Chatham2026!}"
 PW_CHATHAM="${PW_CHATHAM:-Chatham2026!}"
+PW_SENDERO="${PW_SENDERO:-SenderoWind2026!}"
+TEST_PW_SENDERO="${TEST_PW_SENDERO:-Sendero2026!}"
+PW_MSC="${PW_MSC:-MSCWinds2026!}"
+TEST_PW_MSC="${TEST_PW_MSC:-MSC2026!}"
+PW_PASCAGOULA="${PW_PASCAGOULA:-PascagoulaWindVis2026!}"
+TEST_PW_PASCAGOULA="${TEST_PW_PASCAGOULA:-Pascagoula2026!}"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -204,13 +216,13 @@ set_folder_team_permission() {
 }
 
 # Resolve the primary dashboard UID for a customer group.
-# Priority order: visibility > wind > tide.
+# Priority order: combined wind+visibility > visibility > wind > tide.
 # Looks for matching JSON files in the group provisioning directory so the
 # result is always in sync with what generate_group_dashboards.py produced.
 resolve_home_dashboard_uid() {
     local group_id="$1"
     local groups_dir="${DOCKER_DIR}/volumes/grafana/provisioning/dashboards/groups/${group_id}"
-    for dtype in visibility wind tide; do
+    for dtype in wind_visibility visibility wind tide; do
         if [[ -f "${groups_dir}/${dtype}.json" ]]; then
             echo "${dtype}-${group_id}"
             return
@@ -282,6 +294,9 @@ TEAM_PORTRICHEY=$(ensure_team "Portrichey")
 TEAM_CLEARWATER=$(ensure_team "Clearwater")
 TEAM_CORPUSCHRISTI=$(ensure_team "Corpus Christi")
 TEAM_CHATHAM=$(ensure_team "Chatham")
+TEAM_SENDERO=$(ensure_team "Sendero")
+TEAM_OCEANCAY=$(ensure_team "MSC Cruises")
+TEAM_PASCAGOULA=$(ensure_team "Pascagoula")
 
 log "=== Step 3: Create test user accounts ==="
 USER_PORTRICHEY=$(ensure_user "test_portrichey" "Test Portrichey" "test_portrichey@skywind.internal" "${TEST_PW_PORTRICHEY:-PortRichey2026!}")
@@ -291,6 +306,12 @@ USER_CORPUS_CHRISTI=$(ensure_user "corpus_christi" "Corpus Christi" "corpus_chri
 USER_CHATHAM=$(ensure_user "test_chatham" "Test Chatham" "test_chatham@skywind.internal" "${TEST_PW_CHATHAM:-Chatham2026!}")
 USER_CHATHAM_CUST=$(ensure_user "chatham" "Chatham" "chatham@skywind.internal" "${PW_CHATHAM:-Chatham2026!}")
 USER_INTERNAL=$(ensure_user "test_internal" "Test Internal"   "test_internal@skywind.internal"   "$TEST_PW_INTERNAL")
+USER_SENDERO=$(ensure_user "sendero" "Sendero" "sendero@skywind.internal" "$PW_SENDERO")
+USER_TEST_SENDERO=$(ensure_user "test_sendero" "Test Sendero" "test_sendero@skywind.internal" "$TEST_PW_SENDERO")
+USER_MSC=$(ensure_user "msccruises" "MSC Cruises" "msccruises@skywind.internal" "$PW_MSC")
+USER_TEST_MSC=$(ensure_user "test_msc" "Test MSC" "test_msc@skywind.internal" "$TEST_PW_MSC")
+USER_PASCAGOULA=$(ensure_user "pascagoula" "Pascagoula" "pascagoula@skywind.internal" "$PW_PASCAGOULA")
+USER_TEST_PASCAGOULA=$(ensure_user "test_pascagoula" "Test Pascagoula" "test_pascagoula@skywind.internal" "$TEST_PW_PASCAGOULA")
 
 log "=== Step 4: Assign users to teams ==="
 add_user_to_team "$TEAM_PORTRICHEY" "$USER_PORTRICHEY"
@@ -313,6 +334,24 @@ add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CHATHAM_CUST"
 
 add_user_to_team "$INTERNAL_TEAM_ID" "$USER_INTERNAL"
 
+add_user_to_team "$TEAM_SENDERO" "$USER_SENDERO"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_SENDERO"
+
+add_user_to_team "$TEAM_SENDERO" "$USER_TEST_SENDERO"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_SENDERO"
+
+add_user_to_team "$TEAM_OCEANCAY" "$USER_MSC"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_MSC"
+
+add_user_to_team "$TEAM_OCEANCAY" "$USER_TEST_MSC"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_MSC"
+
+add_user_to_team "$TEAM_PASCAGOULA" "$USER_PASCAGOULA"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PASCAGOULA"
+
+add_user_to_team "$TEAM_PASCAGOULA" "$USER_TEST_PASCAGOULA"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_PASCAGOULA"
+
 log "=== Step 5: Set folder permissions ==="
 # Folder UIDs (must match dashboards.yaml)
 declare -A FOLDER_UIDS=(
@@ -323,6 +362,9 @@ declare -A FOLDER_UIDS=(
     ["clearwater"]="cust-grp-clearwater"
     ["corpuschristi"]="cust-grp-corpuschristi"
     ["chatham"]="cust-grp-chatham"
+    ["sendero"]="cust-grp-sendero"
+    ["oceancay"]="cust-grp-oceanCay"
+    ["pascagoula"]="cust-grp-pascagoula"
 )
 
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
@@ -335,12 +377,18 @@ patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[corpuschristi]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[sendero]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$INTERNAL_TEAM_ID" 1
 
 # Per-group teams: Viewer on their folder only
 patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$TEAM_PORTRICHEY" 1
 patch_folder_team_permission "${FOLDER_UIDS[clearwater]}" "$TEAM_CLEARWATER" 1
 patch_folder_team_permission "${FOLDER_UIDS[corpuschristi]}" "$TEAM_CORPUSCHRISTI" 1
 patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$TEAM_CHATHAM" 1
+patch_folder_team_permission "${FOLDER_UIDS[sendero]}" "$TEAM_SENDERO" 1
+patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$TEAM_OCEANCAY" 1
+patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$TEAM_PASCAGOULA" 1
 
 log "=== Step 6: Set home dashboards for test users ==="
 # Customer accounts: resolve primary dashboard from the group provisioning folder
@@ -351,9 +399,14 @@ set_user_home_dashboard "test_corpuschristi" "$TEST_PW_CORPUSCHRISTI"  "$(resolv
 set_user_home_dashboard "corpus_christi" "$PW_CORPUS_CHRISTI"  "$(resolve_home_dashboard_uid grp_corpuschristi)"
 set_user_home_dashboard "test_chatham" "$TEST_PW_CHATHAM"  "$(resolve_home_dashboard_uid grp_chatham)"
 set_user_home_dashboard "chatham" "$PW_CHATHAM"  "$(resolve_home_dashboard_uid grp_chatham)"
-
 # Internal account: always land on the internal visibility dashboard
 set_user_home_dashboard "test_internal"   "$TEST_PW_INTERNAL"    "internal-visibility"
+set_user_home_dashboard "sendero"         "$PW_SENDERO"          "$(resolve_home_dashboard_uid grp_sendero)"
+set_user_home_dashboard "test_sendero"    "$TEST_PW_SENDERO"     "$(resolve_home_dashboard_uid grp_sendero)"
+set_user_home_dashboard "msccruises"      "$PW_MSC"              "$(resolve_home_dashboard_uid grp_oceanCay)"
+set_user_home_dashboard "test_msc"        "$TEST_PW_MSC"         "$(resolve_home_dashboard_uid grp_oceanCay)"
+set_user_home_dashboard "pascagoula"      "$PW_PASCAGOULA"       "$(resolve_home_dashboard_uid grp_pascagoula)"
+set_user_home_dashboard "test_pascagoula" "$TEST_PW_PASCAGOULA"  "$(resolve_home_dashboard_uid grp_pascagoula)"
 
 log "=== Done ==="
 log ""
@@ -367,6 +420,12 @@ log "  corpus_christi     PW_CORPUS_CHRISTI      Corpus Christi + Customers"
 log "  test_chatham       TEST_PW_CHATHAM        Chatham + Customers"
 log "  chatham            PW_CHATHAM             Chatham + Customers"
 log "  test_internal     TEST_PW_INTERNAL       Internal"
+log "  sendero            PW_SENDERO             Sendero + Customers"
+log "  test_sendero       TEST_PW_SENDERO        Sendero + Customers"
+log "  msccruises         PW_MSC                 Ocean Cay + Customers"
+log "  test_msc           TEST_PW_MSC            Ocean Cay + Customers"
+log "  pascagoula         PW_PASCAGOULA          Pascagoula + Customers"
+log "  test_pascagoula    TEST_PW_PASCAGOULA     Pascagoula + Customers"
 log ""
 log "To change a test password, update the variable in .env and re-run this script."
 log "To add a new customer group:"

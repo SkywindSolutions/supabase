@@ -86,6 +86,18 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_corpuschristi
 
+  # Mobile Bay Forecasts (visibility, wind, wind_visibility)
+  - name: Mobile Bay Forecasts
+    orgId: 1
+    folder: Mobile Bay Forecasts
+    folderUid: cust-grp-mobilebay
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_mobilebay
+
   # Ocean Cay Forecasts (wind)
   - name: Ocean Cay Forecasts
     orgId: 1
@@ -98,6 +110,18 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_oceanCay
 
+  # Pascagoula Forecasts (visibility, wind, wind_visibility)
+  - name: Pascagoula Forecasts
+    orgId: 1
+    folder: Pascagoula Forecasts
+    folderUid: cust-grp-pascagoula
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_pascagoula
+
   # Port Richey Forecasts (tide)
   - name: Port Richey Forecasts
     orgId: 1
@@ -109,3 +133,15 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_portrichey
+
+  # Sendero Forecasts (wind)
+  - name: Sendero Forecasts
+    orgId: 1
+    folder: Sendero Forecasts
+    folderUid: cust-grp-sendero
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_sendero

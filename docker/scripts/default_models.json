@@ -3,6 +3,8 @@
   "_schema": "{ <group_id>: { <data_type>: <model_name> } }",
   "_fallbacks": "alert_service falls back to 'tide_astro' for groups without a 'tide' entry.",
   "groups": {
+    "grp_mobilebay":     { "visibility": "fog_1", "wind": "fog_1", "wind_visibility": "fog_1" },
+    "grp_pascagoula":     { "visibility": "fog_1", "wind": "fog_1", "wind_visibility": "fog_1" },
     "grp_portrichey":    { "tide": "tide_blend" },
     "grp_clearwater":    { "tide": "tide_astro" },
     "grp_corpuschristi": { "visibility": "fog_1" },

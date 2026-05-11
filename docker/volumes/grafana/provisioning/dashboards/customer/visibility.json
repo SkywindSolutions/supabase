@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "24-hour visibility forecast \u2014 forecast fields only. No observation data. Customer-facing. Forecast panels display the model run (startdt) on or before the selected window start.",
+  "description": "24-hour visibility forecast — forecast fields only. No observation data. Customer-facing. Forecast panels display the model run (startdt) on or before the selected window start.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -371,7 +371,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 1.5 nmi)"
+                "value": "P(vis ≤ 1.5 nmi)"
               }
             ]
           }

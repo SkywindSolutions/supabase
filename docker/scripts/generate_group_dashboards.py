@@ -58,6 +58,8 @@ log = logging.getLogger(__name__)
 GROUP_DISPLAY_NAMES: dict[str, str] = {
     "group_alpha":       "Alpha Maritime Forecasts",
     "group_beta":        "Beta Offshore Forecasts",
+    "grp_mobilebay":     "Mobile Bay Forecasts",
+    "grp_pascagoula":     "Pascagoula Forecasts",
     "grp_portrichey":   "Port Richey Forecasts",
     "grp_clearwater":   "Clearwater Forecasts",
     "grp_corpuschristi": "Corpus Christi Forecasts",
@@ -82,6 +84,15 @@ TEMPLATE_NAMES: dict[str, str] = {
     "visibility.json": "visibility",
     "wind.json":       "wind",
     "tide.json":       "tide",
+}
+
+COMBINED_DASHBOARDS: dict[str, tuple[str, ...]] = {
+    "wind_visibility": ("visibility", "wind"),
+}
+
+COMBINED_DASHBOARD_GROUPS: dict[str, tuple[str, ...]] = {
+    "grp_mobilebay": ("wind_visibility",),
+    "grp_pascagoula": ("wind_visibility",),
 }
 
 # Per-group, per-dashboard default model mapping.
@@ -263,6 +274,62 @@ def count_group_locations(conn_str: str, group_id: str, dtype: str) -> int:
         return -1
 
 
+def get_default_location(conn_str: str, group_id: str, dtype: str) -> str | None:
+    """Return the first location with data for a group/data type."""
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return None
+
+    cols = DATA_TYPE_COLUMNS.get(dtype)
+    if not cols:
+        return None
+    not_null_clause = " OR ".join(f"{c} IS NOT NULL" for c in cols)
+
+    sql = f"""
+        SELECT locname
+        FROM public.forecast_data
+        WHERE group_id = %s AND ({not_null_clause})
+        GROUP BY locname
+        ORDER BY locname
+        LIMIT 1;
+    """
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id,))
+                row = cur.fetchone()
+                return row[0] if row else None
+    except Exception as exc:
+        log.warning("Failed to get default location for %s/%s: %s", group_id, dtype, exc)
+        return None
+
+
+def count_group_wind_heights(conn_str: str, group_id: str) -> int:
+    """Count distinct wind forecast heights for a group."""
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return -1
+
+    sql = """
+        SELECT COUNT(DISTINCT COALESCE(height_m, 20))
+        FROM public.forecast_data
+        WHERE group_id = %s AND windspdmean IS NOT NULL;
+    """
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id,))
+                row = cur.fetchone()
+                return row[0] if row else 0
+    except Exception as exc:
+        log.warning("Failed to count wind heights for %s: %s", group_id, exc)
+        return -1
+
+
 def sanitise_folder_uid(group_id: str) -> str:
     """Convert a group_id to a safe Grafana folder UID (max 40 chars)."""
     uid = re.sub(r"[^a-zA-Z0-9\-]", "-", group_id)
@@ -275,6 +342,8 @@ def make_group_dashboard(
     dtype: str,
     display_name: str,
     location_count: int = -1,
+    default_location: str | None = None,
+    wind_height_count: int = -1,
 ) -> dict:
     """
     Transform a shared customer dashboard template into a group-specific
@@ -294,6 +363,7 @@ def make_group_dashboard(
         "visibility": "Visibility",
         "wind":       "Wind",
         "tide":       "Tide",
+        "wind_visibility": "Wind & Visibility",
     }
     label = type_labels.get(dtype, dtype.title())
 
@@ -314,16 +384,16 @@ def make_group_dashboard(
     ]
 
 
-    # -- Hardcode group_id in the `location` variable query ------------------
+    # -- Hardcode group_id in template-variable queries ----------------------
     for var in d["templating"]["list"]:
-        if var.get("name") == "location":
-            # Grafana stores the query in both "query" and "definition" fields
-            for field in ("query", "definition"):
-                if var.get(field):
-                    var[field] = var[field].replace(
-                        "group_id = '$group'",
-                        f"group_id = '{group_id}'",
-                    )
+        # Grafana stores query text in both "query" and "definition" fields.
+        for field in ("query", "definition"):
+            if var.get(field):
+                var[field] = var[field].replace(
+                    "group_id = '$group'",
+                    f"group_id = '{group_id}'",
+                )
+
         # Set the default for the model variable if specified
         if var.get("name") == "model":
             default_model = DEFAULT_MODEL.get(group_id, {}).get(dtype)
@@ -333,6 +403,9 @@ def make_group_dashboard(
                 var.pop("current", None)
         elif var.get("name") == "height_m":
             var["current"] = {"text": "All", "value": "$__all"}
+            var["hide"] = 2 if wind_height_count == 1 else 0
+        elif var.get("name") == "location" and default_location:
+            var["current"] = {"text": default_location, "value": default_location}
         else:
             # Clear the cached current value so Grafana picks the first real result
             var.pop("current", None)
@@ -367,6 +440,104 @@ def make_group_dashboard(
                 grid["h"] = 9
 
     return d
+
+
+def make_combined_group_dashboard(
+    templates: dict[str, dict],
+    group_id: str,
+    combined_type: str,
+    display_name: str,
+    default_location: str | None = None,
+    wind_height_count: int = -1,
+) -> dict:
+    """Build a single customer dashboard from multiple customer templates."""
+    source_types = COMBINED_DASHBOARDS[combined_type]
+    d = copy.deepcopy(templates[source_types[0]])
+
+    d["uid"] = f"{combined_type}-{group_id}"
+    d["title"] = f"{display_name} — Wind & Visibility Forecast"
+    d["description"] = (
+        f"Wind and visibility forecast data for {display_name}. "
+        "Customer-facing dashboard. No observation data."
+    )
+    d["editable"] = False
+    d["tags"] = ["customer", "wind", "visibility", "combined"]
+    d["time"] = {"from": "now", "to": "now+24h"}
+
+    panels: list[dict] = []
+    next_id = 1
+    y_offset = 0
+    for source_type in source_types:
+        template_panels = copy.deepcopy(templates[source_type].get("panels", []))
+        if not template_panels:
+            continue
+
+        min_y = min(panel.get("gridPos", {}).get("y", 0) for panel in template_panels)
+        max_bottom = 0
+        for panel in template_panels:
+            grid = panel.setdefault("gridPos", {})
+            grid["y"] = grid.get("y", 0) - min_y + y_offset
+            max_bottom = max(max_bottom, grid["y"] + grid.get("h", 0))
+            panel["id"] = next_id
+            next_id += 1
+        panels.extend(template_panels)
+        y_offset = max_bottom
+
+    d["panels"] = panels
+
+    combined_vars: list[dict] = []
+    seen_vars: set[str] = set()
+    for source_type in source_types:
+        for var in templates[source_type].get("templating", {}).get("list", []):
+            name = var.get("name")
+            if name in seen_vars:
+                continue
+            seen_vars.add(name)
+            new_var = copy.deepcopy(var)
+            if name == "model":
+                default_model = DEFAULT_MODEL.get(group_id, {}).get(source_type)
+                if default_model:
+                    new_var["current"] = {"text": default_model, "value": default_model}
+                new_var["hide"] = 2
+            combined_vars.append(new_var)
+    d.setdefault("templating", {})["list"] = combined_vars
+
+    d = make_group_dashboard(
+        d, group_id, combined_type, display_name, default_location=default_location,
+        wind_height_count=wind_height_count,
+    )
+    _patch_non_nbm_wind_startdt_filters(d.get("panels", []), f"'{group_id}'")
+    d["time"] = {"from": "now", "to": "now+24h"}
+    d["tags"] = ["customer", "wind", "visibility", "combined"]
+    return d
+
+
+def _patch_non_nbm_wind_startdt_filters(panels: list, group_expr: str) -> None:
+    """Filter combined wind forecast panels to one selected run for non-wind_nbm models."""
+    old = "  AND '$model' <> 'wind_nbm'\n  AND $__timeFilter(timestamp)"
+    new = (
+        "  AND '$model' <> 'wind_nbm'\n"
+        "  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n"
+        "  AND startdt = (\n"
+        "    SELECT MAX(startdt)\n"
+        "    FROM forecast_data\n"
+        "    WHERE startdt <= $__timeFrom()\n"
+        "      AND locname = '$location'\n"
+        f"      AND group_id = {group_expr}\n"
+        "      AND model = '$model'\n"
+        "      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n"
+        "      AND windspdmean IS NOT NULL\n"
+        "  )\n"
+        "  AND $__timeFilter(timestamp)"
+    )
+
+    for panel in panels:
+        for target in panel.get("targets", []):
+            raw_sql = target.get("rawSql")
+            if raw_sql and "windspdmean IS NOT NULL" in raw_sql:
+                target["rawSql"] = raw_sql.replace(old, new)
+        if "panels" in panel:
+            _patch_non_nbm_wind_startdt_filters(panel["panels"], group_expr)
 
 
 def _patch_group_id(panels: list, group_id: str) -> None:
@@ -635,8 +806,8 @@ def main() -> None:
     groups_root = output_root / "groups"
 
     for group_id, dtypes in sorted(group_dtypes.items()):
-        # Skip the old shared reference groups — they stay in customer/
-        if group_id in ("group_alpha", "group_beta"):
+        # Skip shared/internal-only groups that should never become customer folders.
+        if group_id in ("group_alpha", "group_beta", "grp_internal"):
             log.info("Skipping shared reference group: %s", group_id)
             continue
 
@@ -646,7 +817,52 @@ def main() -> None:
         if not args.dry_run:
             group_dir.mkdir(parents=True, exist_ok=True)
 
+        combined_source_types: set[str] = set()
+        for combined_type in COMBINED_DASHBOARD_GROUPS.get(group_id, ()):
+            source_types = COMBINED_DASHBOARDS[combined_type]
+            if all(source_type in dtypes for source_type in source_types):
+                missing_templates = [source_type for source_type in source_types if source_type not in templates]
+                if missing_templates:
+                    log.warning(
+                        "  [%s] missing templates for %s, skipping %s",
+                        group_id,
+                        ", ".join(missing_templates),
+                        combined_type,
+                    )
+                    continue
+
+                default_location = None if args.dry_run else get_default_location(
+                    conn_str, group_id, source_types[0]
+                )
+                wind_height_count = -1 if args.dry_run else count_group_wind_heights(
+                    conn_str, group_id
+                )
+                dash = make_combined_group_dashboard(
+                    templates, group_id, combined_type, display_name,
+                    default_location=default_location,
+                    wind_height_count=wind_height_count,
+                )
+                out_file = group_dir / f"{combined_type}.json"
+                combined_source_types.update(source_types)
+                dtypes.add(combined_type)
+
+                if args.dry_run:
+                    log.info("  [DRY-RUN] would write %s (uid=%s)", out_file, dash["uid"])
+                else:
+                    with open(out_file, "w") as fh:
+                        json.dump(dash, fh, indent=2)
+                        fh.write("\n")
+                    log.info("  Wrote %s", out_file)
+
         for dtype in sorted(DATA_TYPE_COLUMNS.keys()):
+            if dtype in combined_source_types:
+                out_file = group_dir / f"{dtype}.json"
+                if not args.dry_run and out_file.exists():
+                    out_file.unlink()
+                    log.info("  [%s] removed stale %s", group_id, out_file.name)
+                log.info("  [%s] skipping %s (covered by combined dashboard)", group_id, dtype)
+                continue
+
             if dtype not in dtypes:
                 log.info("  [%s] skipping %s (no data)", group_id, dtype)
                 # Remove stale file if it exists
@@ -662,9 +878,16 @@ def main() -> None:
 
             # Query location count for panel filtering (especially for tide dashboards)
             location_count = -1 if args.dry_run else count_group_locations(conn_str, group_id, dtype)
+            default_location = None if args.dry_run else get_default_location(conn_str, group_id, dtype)
+            wind_height_count = (
+                -1 if args.dry_run or dtype != "wind" else count_group_wind_heights(conn_str, group_id)
+            )
 
             dash = make_group_dashboard(
-                templates[dtype], group_id, dtype, display_name, location_count=location_count
+                templates[dtype], group_id, dtype, display_name,
+                location_count=location_count,
+                default_location=default_location,
+                wind_height_count=wind_height_count,
             )
             out_file = group_dir / f"{dtype}.json"
 
