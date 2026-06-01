@@ -384,7 +384,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis \u2264 1.5 nmi)"
+                "value": "P(vis ≤ 1.5 nmi)"
               }
             ]
           }
@@ -899,7 +899,7 @@
           "refId": "A"
         }
       ],
-      "title": "Model Comparison \u2014 Model Run (vismean / hrrrvis / nbmvis / vismedian)",
+      "title": "Model Comparison — Model Run (vismean / hrrrvis / nbmvis / vismedian)",
       "type": "timeseries"
     },
     {
@@ -1058,6 +1058,20 @@
       "panels": []
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 54
+      },
+      "id": 901,
+      "panels": [],
+      "repeat": "height_m",
+      "title": "${height_m} m Wind",
+      "type": "row"
+    },
+    {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
@@ -1214,7 +1228,7 @@
         "h": 9,
         "w": 18,
         "x": 0,
-        "y": 54
+        "y": 55
       },
       "id": 10,
       "options": {
@@ -1243,17 +1257,79 @@
         }
       ],
       "title": "Wind Speed Forecast (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "type": "timeseries"
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Most recent wind speed at-or-before now (${height_m} m).",
+      "description": "Timestamp of the most recent forecast sample, shown in the browser's local time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:YYYY-MM-DD HH:mm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 6,
+        "x": 18,
+        "y": 55
+      },
+      "id": 400,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Data Time/",
+          "values": false
+        },
+        "text": {
+          "valueSize": 28
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT MAX(timestamp) AS \"Data Time\" FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+          "refId": "A"
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Most recent speed at-or-before now (${height_m} m).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1279,13 +1355,26 @@
           },
           "unit": "velocityknot"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Speed"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 9,
-        "w": 6,
+        "h": 3,
+        "w": 3,
         "x": 18,
-        "y": 54
+        "y": 57
       },
       "id": 11,
       "options": {
@@ -1300,7 +1389,10 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value",
+        "text": {
+          "valueSize": 26
+        }
       },
       "targets": [
         {
@@ -1309,17 +1401,194 @@
             "uid": "supabase-postgres"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
-      "title": "Current Wind Speed (${height_m} m)",
-      "type": "stat",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "title": "Speed (${height_m}m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Most recent direction at-or-before now (${height_m} m).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "degree"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Direction"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 60
+      },
+      "id": 401,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 34
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (MOD(MOD(winddirmean::numeric, 360) + 360, 360))::float AS winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Direction (${height_m}m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Most recent gusts at-or-before now (${height_m} m).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Gusts"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 21,
+        "y": 57
+      },
+      "id": 402,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 34
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Gusts (${height_m}m)",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -1336,7 +1605,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Direction (\u00b0)",
+            "axisLabel": "Direction (°)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -1389,6 +1658,13 @@
               {
                 "id": "displayName",
                 "value": "Predicted Wind Direction"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
               }
             ]
           },
@@ -1417,12 +1693,11 @@
                 "value": 1
               },
               {
-                "id": "custom.fillBelowTo",
-                "value": "winddirlb"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 10
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
               }
             ]
           },
@@ -1451,8 +1726,415 @@
                 "value": 1
               },
               {
-                "id": "custom.fillOpacity",
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirlb_sm1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirlb_sp1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirub_sm1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirub_sp1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandlb"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
                 "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandub"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "winddirbandlb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandlb_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandub_sm1"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "winddirbandlb_sm1"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandlb_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirbandub_sp1"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "winddirbandlb_sp1"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
               }
             ]
           }
@@ -1462,7 +2144,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 64
       },
       "id": 12,
       "options": {
@@ -1486,15 +2168,522 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  winddirmean,\n  winddirlb,\n  winddirub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nORDER BY \"time\"",
+          "rawSql": "WITH src AS (\n  SELECT\n    timestamp AS \"time\",\n    winddirmean,\n    winddirlb,\n    winddirub\n  FROM forecast_data\n  WHERE\n    windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' <> 'wind_nbm'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n        AND windspdmean IS NOT NULL\n    )\n    AND $__timeFilter(timestamp)\n  UNION ALL\n  SELECT\n    forecastdtutc AS \"time\",\n    winddirmean,\n    winddirlb,\n    winddirub\n  FROM forecast_data\n  WHERE\n    windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n)\nSELECT w.\"time\",\n       w.v1_s0 AS winddirmean, w.v1_sm1 AS winddirmean_sm1, w.v1_sp1 AS winddirmean_sp1,\n       CASE WHEN LEAST(w.v2_s0, w.v3_s0) <= 360 AND GREATEST(w.v2_s0, w.v3_s0) >= 0 THEN GREATEST(0, LEAST(360, w.v2_s0)) END AS winddirlb, CASE WHEN LEAST(w.v2_sm1, w.v3_sm1) <= 360 AND GREATEST(w.v2_sm1, w.v3_sm1) >= 0 THEN GREATEST(0, LEAST(360, w.v2_sm1)) END AS winddirlb_sm1, CASE WHEN LEAST(w.v2_sp1, w.v3_sp1) <= 360 AND GREATEST(w.v2_sp1, w.v3_sp1) >= 0 THEN GREATEST(0, LEAST(360, w.v2_sp1)) END AS winddirlb_sp1,\n       CASE WHEN LEAST(w.v2_s0, w.v3_s0) <= 360 AND GREATEST(w.v2_s0, w.v3_s0) >= 0 THEN GREATEST(0, LEAST(360, w.v3_s0)) END AS winddirub, CASE WHEN LEAST(w.v2_sm1, w.v3_sm1) <= 360 AND GREATEST(w.v2_sm1, w.v3_sm1) >= 0 THEN GREATEST(0, LEAST(360, w.v3_sm1)) END AS winddirub_sm1, CASE WHEN LEAST(w.v2_sp1, w.v3_sp1) <= 360 AND GREATEST(w.v2_sp1, w.v3_sp1) >= 0 THEN GREATEST(0, LEAST(360, w.v3_sp1)) END AS winddirub_sp1,\n       CASE WHEN LEAST(w.v2_s0, w.v3_s0) <= 360 AND GREATEST(w.v2_s0, w.v3_s0) >= 0 THEN GREATEST(0, LEAST(360, w.v2_s0)) END AS winddirbandlb, CASE WHEN LEAST(w.v2_sm1, w.v3_sm1) <= 360 AND GREATEST(w.v2_sm1, w.v3_sm1) >= 0 THEN GREATEST(0, LEAST(360, w.v2_sm1)) END AS winddirbandlb_sm1, CASE WHEN LEAST(w.v2_sp1, w.v3_sp1) <= 360 AND GREATEST(w.v2_sp1, w.v3_sp1) >= 0 THEN GREATEST(0, LEAST(360, w.v2_sp1)) END AS winddirbandlb_sp1,\n       CASE WHEN LEAST(w.v2_s0, w.v3_s0) <= 360 AND GREATEST(w.v2_s0, w.v3_s0) >= 0 THEN GREATEST(0, LEAST(360, w.v3_s0)) END AS winddirbandub, CASE WHEN LEAST(w.v2_sm1, w.v3_sm1) <= 360 AND GREATEST(w.v2_sm1, w.v3_sm1) >= 0 THEN GREATEST(0, LEAST(360, w.v3_sm1)) END AS winddirbandub_sm1, CASE WHEN LEAST(w.v2_sp1, w.v3_sp1) <= 360 AND GREATEST(w.v2_sp1, w.v3_sp1) >= 0 THEN GREATEST(0, LEAST(360, w.v3_sp1)) END AS winddirbandub_sp1\nFROM public.fn_wrap_directions(\n  (SELECT array_agg(\"time\"      ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirmean ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirlb   ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirub   ORDER BY \"time\") FROM src)\n) w\nORDER BY w.\"time\"",
           "refId": "A"
         }
       ],
       "title": "Wind Direction Forecast (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Observed vs forecast wind speed at ${height_m} m. Three series: ensemble mean (windspdmean), NBM forecast (windspd), and observed wind speed from model_1 fhr=0 rows (or wind_nbm fhr=0 rows for wind_nbm groups).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Wind Speed (kt)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast (mean)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspd_nbm"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "NBM Forecast"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspd_obs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 73
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH legacy AS (\n  SELECT timestamp AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' <> 'wind_nbm'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n        AND windspdmean IS NOT NULL\n    )\n    AND $__timeFilter(timestamp)\n), nbm_run AS (\n  SELECT forecastdtutc AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n), obs_legacy AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' <> 'wind_nbm'\n    AND model = 'model_1'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), obs_nbm AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' = 'wind_nbm'\n    AND model = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), u AS (\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs FROM legacy\n  UNION ALL\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs FROM nbm_run\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs FROM obs_legacy\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs FROM obs_nbm\n)\nSELECT \"time\",\n       MAX(windspdmean) AS windspdmean,\n       MAX(windspd_nbm) AS windspd_nbm,\n       MAX(windspd_obs) AS windspd_obs\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Observed vs. Forecast Wind Speed (${height_m} m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Observed vs forecast wind direction at ${height_m} m. Three series: ensemble mean (winddirmean), NBM forecast (winddir), and observed wind direction from model_1 fhr=0 rows (or wind_nbm fhr=0 rows for wind_nbm groups).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Direction (°)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast Direction (mean)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_nbm"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "NBM Forecast Direction"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_obs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed Direction"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_nbm_sm1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_nbm_sp1"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_obs_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddir_obs_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH legacy AS (\n  SELECT timestamp AS \"time\",\n         winddirmean,\n         winddir AS winddir_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' <> 'wind_nbm'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n        AND windspdmean IS NOT NULL\n    )\n    AND $__timeFilter(timestamp)\n), nbm_run AS (\n  SELECT forecastdtutc AS \"time\",\n         winddirmean,\n         winddir AS winddir_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n), obs_legacy AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wdir_degrees AS winddir_obs\n  FROM forecast_data\n  WHERE obs_wdir_degrees IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' <> 'wind_nbm'\n    AND model = 'model_1'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), obs_nbm AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wdir_degrees AS winddir_obs\n  FROM forecast_data\n  WHERE obs_wdir_degrees IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' = 'wind_nbm'\n    AND model = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), u AS (\n  SELECT \"time\", winddirmean, winddir_nbm, NULL::float AS winddir_obs FROM legacy\n  UNION ALL\n  SELECT \"time\", winddirmean, winddir_nbm, NULL::float AS winddir_obs FROM nbm_run\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, winddir_obs FROM obs_legacy\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, winddir_obs FROM obs_nbm\n), src AS (\n  SELECT \"time\",\n         MAX(winddirmean) AS winddirmean,\n         MAX(winddir_nbm) AS winddir_nbm,\n         MAX(winddir_obs) AS winddir_obs\n  FROM u\n  GROUP BY \"time\"\n)\nSELECT w.\"time\",\n       w.v1_s0 AS winddirmean, w.v1_sm1 AS winddirmean_sm1, w.v1_sp1 AS winddirmean_sp1,\n       w.v2_s0 AS winddir_nbm, w.v2_sm1 AS winddir_nbm_sm1, w.v2_sp1 AS winddir_nbm_sp1,\n       w.v3_s0 AS winddir_obs, w.v3_sm1 AS winddir_obs_sm1, w.v3_sp1 AS winddir_obs_sp1\nFROM public.fn_wrap_directions(\n  (SELECT array_agg(\"time\"     ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirmean ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddir_nbm ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddir_obs ORDER BY \"time\") FROM src)\n) w\nORDER BY w.\"time\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Observed vs. Forecast Wind Direction (${height_m} m)",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1584,7 +2773,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 72
+        "y": 91
       },
       "id": 13,
       "options": {
@@ -1612,304 +2801,8 @@
           "refId": "A"
         }
       ],
-      "title": "Wind Speed by Location and Height (latest)",
+      "title": "Wind Speed by Location and Height",
       "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
-      "description": "Observed vs forecast wind speed at ${height_m} m. Uses obs_wspd_kt from model_1 observation rows when available; legacy models can also use the existing windspd column.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Wind Speed (kt)",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "velocityknot"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "windspdmean"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Forecast (mean)"
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "solid"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "windspd"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Observed"
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "solid"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 79
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH u AS (\nSELECT\n  timestamp AS \"time\",\n  windspdmean AS windspdmean,\n  windspd AS windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  windspdmean AS windspdmean,\n  NULL::float AS windspd\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  NULL::float AS windspdmean,\n  obs_wspd_kt AS windspd\nFROM forecast_data\nWHERE\n  obs_wspd_kt IS NOT NULL\n  AND fhr = 0\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'model_1'\n  AND height_m = ${height_m:raw}\n  AND $__timeFilter(forecastdtutc)\n)\nSELECT \"time\", MAX(windspdmean) AS windspdmean, MAX(windspd) AS windspd\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
-          "refId": "A"
-        }
-      ],
-      "title": "Observed vs. Forecast Wind Speed (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
-      "description": "Observed vs forecast wind direction at ${height_m} m. Uses obs_wdir_degrees from model_1 observation rows when available.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Direction (\u00b0)",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "degree",
-          "min": 0,
-          "max": 360
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "winddirmean"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Forecast Direction (mean)"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "winddir"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Observed Direction"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 88
-      },
-      "id": 15,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH u AS (\nSELECT\n  timestamp AS \"time\",\n  winddirmean AS winddirmean,\n  winddir AS winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' <> 'wind_nbm'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n      AND windspdmean IS NOT NULL\n  )\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  winddirmean AS winddirmean,\n  NULL::float AS winddir\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$model'\n  AND '$model' = 'wind_nbm'\n  AND height_m = ${height_m:raw}\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = '$group'\n      AND model = '$model'\n      AND height_m = ${height_m:raw}\n      AND windspdmean IS NOT NULL\n  )\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  NULL::float AS winddirmean,\n  obs_wdir_degrees AS winddir\nFROM forecast_data\nWHERE\n  obs_wdir_degrees IS NOT NULL\n  AND fhr = 0\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = 'model_1'\n  AND height_m = ${height_m:raw}\n  AND $__timeFilter(forecastdtutc)\n)\nSELECT \"time\", MAX(winddirmean) AS winddirmean, MAX(winddir) AS winddir\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
-          "refId": "A"
-        }
-      ],
-      "title": "Observed vs. Forecast Wind Direction (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
     },
     {
       "type": "row",
@@ -1920,7 +2813,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 97
+        "y": 91
       },
       "panels": []
     },
@@ -1933,7 +2826,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 98
+        "y": 92
       },
       "panels": [],
       "timeFrom": "30d"
@@ -1944,14 +2837,14 @@
         "uid": "supabase-postgres"
       },
       "id": 18,
-      "title": "Bias (forecast \u2212 observed)",
+      "title": "Bias (forecast − observed)",
       "description": "Mean signed error over the selected window. Positive = over-forecasting visibility (i.e. forecast is clearer than observed).",
       "type": "stat",
       "gridPos": {
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 99
+        "y": 93
       },
       "fieldConfig": {
         "defaults": {
@@ -2008,7 +2901,7 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 99
+        "y": 93
       },
       "fieldConfig": {
         "defaults": {
@@ -2065,7 +2958,7 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 99
+        "y": 93
       },
       "fieldConfig": {
         "defaults": {
@@ -2122,7 +3015,7 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 99
+        "y": 93
       },
       "fieldConfig": {
         "defaults": {
@@ -2173,13 +3066,13 @@
       },
       "id": 22,
       "title": "Obs inside ensemble envelope",
-      "description": "Fraction of observations falling between vislb and visub. ~80\u201390% is a well-calibrated ensemble for nominal 80%/90% bounds.",
+      "description": "Fraction of observations falling between vislb and visub. ~80–90% is a well-calibrated ensemble for nominal 80%/90% bounds.",
       "type": "stat",
       "gridPos": {
         "h": 5,
         "w": 4,
         "x": 20,
-        "y": 99
+        "y": 93
       },
       "fieldConfig": {
         "defaults": {
@@ -2235,7 +3128,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 104
+        "y": 98
       },
       "fieldConfig": {
         "defaults": {
@@ -2289,7 +3182,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 104
+        "y": 98
       },
       "fieldConfig": {
         "defaults": {
@@ -2343,7 +3236,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 113
+        "y": 107
       },
       "fieldConfig": {
         "defaults": {
@@ -2393,7 +3286,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 113
+        "y": 107
       },
       "fieldConfig": {
         "defaults": {
@@ -2536,13 +3429,13 @@
     {
       "type": "row",
       "id": 27,
-      "title": "Operational threshold (vis \u2264 1.5 nmi)",
+      "title": "Operational threshold (vis ≤ 1.5 nmi)",
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 122
+        "y": 116
       },
       "panels": [],
       "timeFrom": "30d"
@@ -2554,13 +3447,13 @@
       },
       "id": 28,
       "title": "Hits / Misses / False alarms / Correct negatives @ 1.5 nmi",
-      "description": "Contingency counts using vis \u2264 1.5 nmi as the event threshold. Phase 2 will turn these into POD / FAR / CSI / HSS.",
+      "description": "Contingency counts using vis ≤ 1.5 nmi as the event threshold. Phase 2 will turn these into POD / FAR / CSI / HSS.",
       "type": "stat",
       "gridPos": {
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 123
+        "y": 117
       },
       "fieldConfig": {
         "defaults": {
@@ -2601,6 +3494,793 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Hits\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value <= 1.5 THEN 1 ELSE 0 END) AS \"Misses\",\n  SUM(CASE WHEN forecast_capped <= 1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"False alarms\",\n  SUM(CASE WHEN forecast_capped >  1.5 AND observed_value >  1.5 THEN 1 ELSE 0 END) AS \"Correct negatives\"\nFROM v_forecast_verification\nWHERE variable = 'visibility'\n  AND model = 'fog_1'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "type": "row",
+      "id": 300,
+      "title": "Mean vs Median forecast comparison ($__timeFilter)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 122
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 301,
+      "title": "Visibility verification — Mean vs Median forecast",
+      "description": "Same matched forecast/observation pairs as the visibility headline metrics, but reports stats for both the ensemble mean (vismean) and the ensemble median (vismedian) forecasts. Visibility values are capped at 5 nmi on both sides of the difference.",
+      "type": "table",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 123
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "none",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast statistic"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH fcst AS (\n  SELECT \"timestamp\", group_id, locid, locname, startdt,\n         LEAST(vismean,   5.0) AS f_mean,\n         LEAST(vismedian, 5.0) AS f_median,\n         CASE\n           WHEN startdt IS NULL                                    THEN 'astro'\n           WHEN \"timestamp\" - startdt <= INTERVAL '6 hours'       THEN '0-6h'\n           WHEN \"timestamp\" - startdt <= INTERVAL '12 hours'      THEN '6-12h'\n           WHEN \"timestamp\" - startdt <= INTERVAL '24 hours'      THEN '12-24h'\n           WHEN \"timestamp\" - startdt <= INTERVAL '48 hours'      THEN '24-48h'\n           WHEN \"timestamp\" - startdt <= INTERVAL '72 hours'      THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket\n  FROM forecast_data\n  WHERE model = 'fog_1'\n    AND vismean IS NOT NULL\n    AND group_id = '$group'\n    AND locname  = '$location'\n    AND $__timeFilter(\"timestamp\")\n), obs AS (\n  SELECT group_id, locid, locname, \"timestamp\", LEAST(obsvis, 5.0) AS o_val\n  FROM forecast_data\n  WHERE model = 'model_1' AND fhr = 0 AND obsvis IS NOT NULL\n    AND group_id = '$group' AND locname = '$location'\n), j AS (\n  SELECT f.lead_bucket, f.f_mean, f.f_median, o.o_val,\n         (f.f_mean   - o.o_val) AS err_mean,\n         (f.f_median - o.o_val) AS err_median\n  FROM fcst f\n  JOIN obs o\n    ON o.group_id = f.group_id AND o.locid = f.locid\n   AND o.\"timestamp\" = f.\"timestamp\"\n  WHERE f.lead_bucket IN ($lead_bucket)\n)\nSELECT 'Mean'   AS \"Forecast statistic\",\n       COUNT(*)                                AS \"N\",\n       AVG(err_mean)                           AS \"Bias (nmi)\",\n       AVG(ABS(err_mean))                      AS \"MAE (nmi)\",\n       SQRT(AVG(err_mean * err_mean))          AS \"RMSE (nmi)\"\nFROM j\nWHERE f_mean IS NOT NULL\nUNION ALL\nSELECT 'Median',\n       COUNT(*) FILTER (WHERE f_median IS NOT NULL),\n       AVG(err_median),\n       AVG(ABS(err_median)),\n       SQRT(AVG(err_median * err_median))\nFROM j\nWHERE f_median IS NOT NULL"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "type": "row",
+      "id": 200,
+      "title": "Wind Forecast Verification",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 130
+      },
+      "panels": []
+    },
+    {
+      "type": "row",
+      "id": 201,
+      "title": "Headline metrics ($__timeFilter)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 131
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 202,
+      "title": "Wind speed metrics",
+      "description": "Bias = AVG(forecast − observed); MAE = AVG(|error|); RMSE = sqrt(AVG(error^2)); In-envelope = fraction of observations between windspdlb and windspdub. The 'Ensemble mean' row uses windspdmean; the 'NBM' row uses the windspd column (NBM forecast). Observations come from model_1 / wind_nbm fhr=0 rows at the same valid time.",
+      "type": "table",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 132
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "velocityknot",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In-envelope"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT\n    CASE\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n      ELSE '72h+'\n    END AS lead_bucket,\n    f.windspdmean AS forecast_mean,\n    f.windspd     AS forecast_nbm,\n    f.windspdlb   AS forecast_lb,\n    f.windspdub   AS forecast_ub,\n    o.obs_wspd_kt AS observed_value\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n), errors AS (\n  SELECT lead_bucket,\n         observed_value,\n         forecast_lb, forecast_ub,\n         forecast_mean - observed_value AS err_mean,\n         forecast_nbm  - observed_value AS err_nbm\n  FROM matched\n  WHERE observed_value IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT 'Ensemble mean' AS \"Source\",\n       COUNT(*) FILTER (WHERE err_mean IS NOT NULL) AS \"N\",\n       AVG(err_mean)                    AS \"Bias (kt)\",\n       AVG(ABS(err_mean))               AS \"MAE (kt)\",\n       SQRT(AVG(err_mean * err_mean))   AS \"RMSE (kt)\",\n       AVG(CASE WHEN observed_value BETWEEN forecast_lb AND forecast_ub THEN 1.0 ELSE 0.0 END)\n         FILTER (WHERE forecast_lb IS NOT NULL AND forecast_ub IS NOT NULL) AS \"In-envelope\"\nFROM errors\nUNION ALL\nSELECT 'NBM',\n       COUNT(*) FILTER (WHERE err_nbm IS NOT NULL),\n       AVG(err_nbm),\n       AVG(ABS(err_nbm)),\n       SQRT(AVG(err_nbm * err_nbm)),\n       NULL::float\nFROM errors"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 203,
+      "title": "Wind direction metrics",
+      "description": "Direction error uses shortest signed angular difference, so ±180 deg is the largest possible miss. The 'Ensemble mean' row uses winddirmean; the 'NBM' row uses the winddir column (NBM forecast). Observations come from model_1 / wind_nbm fhr=0 rows at the same valid time.",
+      "type": "table",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 132
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "degree",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT\n    CASE\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n      ELSE '72h+'\n    END AS lead_bucket,\n    f.winddirmean AS forecast_mean,\n    f.winddir     AS forecast_nbm,\n    o.obs_wdir_degrees AS observed_value\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n), errors AS (\n  SELECT lead_bucket,\n         (MOD((forecast_mean - observed_value + 540)::numeric, 360) - 180)::float AS err_mean,\n         (MOD((forecast_nbm  - observed_value + 540)::numeric, 360) - 180)::float AS err_nbm\n  FROM matched\n  WHERE observed_value IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT 'Ensemble mean' AS \"Source\",\n       COUNT(*) FILTER (WHERE err_mean IS NOT NULL) AS \"N\",\n       AVG(err_mean)                  AS \"Circular bias (deg)\",\n       AVG(ABS(err_mean))             AS \"MAE (deg)\",\n       SQRT(AVG(err_mean * err_mean)) AS \"RMSE (deg)\"\nFROM errors\nUNION ALL\nSELECT 'NBM',\n       COUNT(*) FILTER (WHERE err_nbm IS NOT NULL),\n       AVG(err_nbm),\n       AVG(ABS(err_nbm)),\n       SQRT(AVG(err_nbm * err_nbm))\nFROM errors"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 204,
+      "title": "Daily wind speed Bias and MAE",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 139
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Wind speed error (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean - o.obs_wspd_kt AS err_mean,\n         f.windspd     - o.obs_wspd_kt AS err_nbm\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND o.obs_wspd_kt IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(err_mean)        AS \"Bias (mean)\",\n       AVG(ABS(err_mean))   AS \"MAE (mean)\",\n       AVG(err_nbm)         AS \"Bias (NBM)\",\n       AVG(ABS(err_nbm))    AS \"MAE (NBM)\"\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY 1\nORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 205,
+      "title": "Daily wind direction Bias and MAE",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 139
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Direction error (deg)"
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         (MOD((f.winddirmean - o.obs_wdir_degrees + 540)::numeric, 360) - 180)::float AS err_mean,\n         (MOD((f.winddir     - o.obs_wdir_degrees + 540)::numeric, 360) - 180)::float AS err_nbm\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND o.obs_wdir_degrees IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(err_mean)        AS \"Circular bias (mean)\",\n       AVG(ABS(err_mean))   AS \"MAE (mean)\",\n       AVG(err_nbm)         AS \"Circular bias (NBM)\",\n       AVG(ABS(err_nbm))    AS \"MAE (NBM)\"\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY 1\nORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 206,
+      "title": "Wind speed MAE by lead-time bucket",
+      "type": "barchart",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 148
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "MAE (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean - COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) AS error\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket, AVG(ABS(error)) AS mae\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 207,
+      "title": "Wind direction MAE by lead-time bucket",
+      "type": "barchart",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 148
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "MAE (deg)"
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         (MOD((f.winddirmean - COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) + 540)::numeric, 360) - 180)::float AS error\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket, AVG(ABS(error)) AS mae\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 208,
+      "title": "Matched sample count by lead bucket",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 157
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) AS speed_obs,\n         COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) AS direction_obs\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket AS \"Lead bucket\",\n       COUNT(*) FILTER (WHERE speed_obs IS NOT NULL) AS \"Wind speed pairs\",\n       COUNT(*) FILTER (WHERE direction_obs IS NOT NULL) AS \"Wind direction pairs\"\nFROM base\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 209,
+      "title": "Observed vs forecast wind speed",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 165
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Wind speed (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean AS \"Forecast (mean)\",\n         f.windspd     AS \"Forecast (NBM)\",\n         o.obs_wspd_kt AS \"Observed\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\"\nFROM matched\nWHERE \"Observed\" IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\nORDER BY \"time\""
+        }
+      ],
+      "timeFrom": "30d"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 210,
+      "title": "Observed vs forecast wind direction",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 165
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Direction (deg)"
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.winddirmean AS \"Forecast (mean)\",\n         f.winddir     AS \"Forecast (NBM)\",\n         o.obs_wdir_degrees AS \"Observed\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = 10\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = 10\n    AND $__timeFilter(f.\"timestamp\")\n), src AS (\n  SELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\"\n  FROM matched\n  WHERE \"Observed\" IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT w.\"time\",\n       w.v1_s0 AS \"Forecast (mean)\", w.v1_sm1 AS \"Forecast (mean)_sm1\", w.v1_sp1 AS \"Forecast (mean)_sp1\",\n       w.v2_s0 AS \"Forecast (NBM)\", w.v2_sm1 AS \"Forecast (NBM)_sm1\", w.v2_sp1 AS \"Forecast (NBM)_sp1\",\n       w.v3_s0 AS \"Observed\", w.v3_sm1 AS \"Observed_sm1\", w.v3_sp1 AS \"Observed_sp1\"\nFROM public.fn_wrap_directions(\n  (SELECT array_agg(\"time\"            ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Forecast (mean)\" ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Forecast (NBM)\"  ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Observed\"        ORDER BY \"time\") FROM src)\n) w\nORDER BY w.\"time\""
         }
       ],
       "timeFrom": "30d"
@@ -2727,6 +4407,24 @@
         "type": "query",
         "label": "Lead-time bucket",
         "allValue": "'astro','0-6h','6-12h','12-24h','24-48h','48-72h','72h+'"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "data_time",
+        "options": [],
+        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Data Time"
       }
     ]
   },
@@ -2738,6 +4436,6 @@
   "timezone": "browser",
   "title": "Wind & Visibility Forecast (Internal)",
   "uid": "internal-wind-visibility",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }

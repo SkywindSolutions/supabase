@@ -371,7 +371,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "P(vis ≤ 1.5 nmi)"
+                "value": "P(vis ≤ 1.0 nmi)"
               }
             ]
           }
@@ -541,8 +541,8 @@
     "list": [
       {
         "current": {
-          "text": "group_alpha",
-          "value": "group_alpha"
+          "text": "grp_mobilebay",
+          "value": "grp_mobilebay"
         },
         "datasource": {
           "type": "postgres",
@@ -563,8 +563,8 @@
       },
       {
         "current": {
-          "text": "GFS",
-          "value": "GFS"
+          "text": "fog_1",
+          "value": "fog_1"
         },
         "datasource": {
           "type": "postgres",
@@ -585,8 +585,8 @@
       },
       {
         "current": {
-          "text": "BOSTON_INNER",
-          "value": "BOSTON_INNER"
+          "text": "Mobile Bay",
+          "value": "Mobile Bay"
         },
         "datasource": {
           "type": "postgres",

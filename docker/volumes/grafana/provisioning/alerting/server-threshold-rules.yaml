@@ -237,3 +237,82 @@ groups:
         labels:
           severity: critical
           team: infra
+
+      - uid: forecast_data_stale_6h
+        title: Forecast data stale for location
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: supabase-postgres
+            relativeTimeRange:
+              from: 21600
+              to: 0
+            model:
+              datasource:
+                type: postgres
+                uid: supabase-postgres
+              editorMode: code
+              format: table
+              intervalMs: 1000
+              maxDataPoints: 43200
+              rawQuery: true
+              rawSql: |
+                WITH latest_runs AS (
+                  SELECT
+                    group_id,
+                    locid,
+                    locname,
+                    MAX(startdt) AS latest_run_at
+                  FROM forecast_data
+                  WHERE startdt IS NOT NULL
+                    AND group_id IS NOT NULL
+                    AND locid IS NOT NULL
+                    AND locname IS NOT NULL
+                  GROUP BY group_id, locid, locname
+                )
+                SELECT
+                  group_id,
+                  locid,
+                  locname,
+                  EXTRACT(EPOCH FROM (NOW() - latest_run_at)) / 3600 AS hours_since_latest_run
+                FROM latest_runs
+                WHERE latest_run_at < NOW() - INTERVAL '6 hours'
+                ORDER BY hours_since_latest_run DESC
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 6
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Forecast data has not refreshed for a location
+          description: "{{ $labels.group_id }} / {{ $labels.locid }} ({{ $labels.locname }}) has not received a model run in more than 6 hours."
+        labels:
+          severity: critical
+          team: infra

@@ -870,8 +870,8 @@
     "list": [
       {
         "current": {
-          "text": "group_alpha",
-          "value": "group_alpha"
+          "text": "grp_portrichey",
+          "value": "grp_portrichey"
         },
         "datasource": {
           "type": "postgres",
@@ -892,8 +892,8 @@
       },
       {
         "current": {
-          "text": "tide_astro",
-          "value": "tide_astro"
+          "text": "tide_blend",
+          "value": "tide_blend"
         },
         "datasource": {
           "type": "postgres",
@@ -914,8 +914,8 @@
       },
       {
         "current": {
-          "text": "BOSTON_INNER",
-          "value": "BOSTON_INNER"
+          "text": "Port Richey",
+          "value": "Port Richey"
         },
         "datasource": {
           "type": "postgres",

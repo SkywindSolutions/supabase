@@ -23,6 +23,20 @@
   "links": [],
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 900,
+      "panels": [],
+      "repeat": "height_m",
+      "title": "${height_m} m Wind",
+      "type": "row"
+    },
+    {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
@@ -178,7 +192,7 @@
         "h": 9,
         "w": 18,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 1,
       "options": {
@@ -207,10 +221,72 @@
         }
       ],
       "title": "Wind Speed Forecast (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Timestamp of the most recent forecast sample, shown in the browser's local time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:YYYY-MM-DD HH:mm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Data Time/",
+          "values": false
+        },
+        "text": {
+          "valueSize": 28
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT MAX(timestamp) AS \"Data Time\" FROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ",
+          "refId": "A"
+        }
+      ],
+      "title": "",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -242,13 +318,26 @@
           },
           "unit": "velocityknot"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Speed"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 9,
-        "w": 6,
+        "h": 3,
+        "w": 3,
         "x": 18,
-        "y": 0
+        "y": 3
       },
       "id": 2,
       "options": {
@@ -263,7 +352,10 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value",
+        "text": {
+          "valueSize": 26
+        }
       },
       "targets": [
         {
@@ -272,17 +364,195 @@
             "uid": "supabase-postgres"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
-      "title": "Current Wind Speed (${height_m} m)",
+      "title": "Speed (${height_m}m)",
       "type": "stat",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "description": "Most recent speed at-or-before now (${height_m} m)."
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "degree"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "winddirmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Direction"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 6
+      },
+      "id": 101,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 34
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (MOD(MOD(winddirmean::numeric, 360) + 360, 360))::float AS winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Direction (${height_m}m)",
+      "type": "stat",
+      "description": "Most recent direction at-or-before now (${height_m} m)."
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Gusts"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 21,
+        "y": 3
+      },
+      "id": 102,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 34
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_sendero'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Gusts (${height_m}m)",
+      "type": "stat",
+      "description": "Most recent gusts at-or-before now (${height_m} m)."
     },
     {
       "datasource": {
@@ -552,7 +822,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 10
       },
       "id": 3,
       "options": {
@@ -581,10 +851,7 @@
         }
       ],
       "title": "Wind Direction Forecast (${height_m} m)",
-      "type": "timeseries",
-      "repeat": "height_m",
-      "repeatDirection": "v",
-      "maxPerRow": 1
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -673,7 +940,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 20
       },
       "id": 4,
       "options": {
@@ -701,7 +968,7 @@
           "refId": "A"
         }
       ],
-      "title": "Wind Speed by Location and Height (latest)",
+      "title": "Wind Speed by Location and Height",
       "type": "table"
     }
   ],
@@ -772,6 +1039,24 @@
         "sort": 1,
         "type": "query",
         "label": "Height (m)"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_sendero' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "data_time",
+        "options": [],
+        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_sendero' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Data Time"
       }
     ]
   },
@@ -783,6 +1068,6 @@
   "timezone": "browser",
   "title": "Sendero Forecasts — Wind Forecast",
   "uid": "wind-grp_sendero",
-  "version": 5,
+  "version": 6,
   "weekStart": ""
 }

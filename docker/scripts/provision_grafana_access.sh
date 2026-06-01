@@ -216,13 +216,13 @@ set_folder_team_permission() {
 }
 
 # Resolve the primary dashboard UID for a customer group.
-# Priority order: combined wind+visibility > visibility > wind > tide.
+# Priority order: combined dashboards > single-product dashboards.
 # Looks for matching JSON files in the group provisioning directory so the
 # result is always in sync with what generate_group_dashboards.py produced.
 resolve_home_dashboard_uid() {
     local group_id="$1"
     local groups_dir="${DOCKER_DIR}/volumes/grafana/provisioning/dashboards/groups/${group_id}"
-    for dtype in wind_visibility visibility wind tide; do
+    for dtype in tide_wind wind_visibility visibility wind tide; do
         if [[ -f "${groups_dir}/${dtype}.json" ]]; then
             echo "${dtype}-${group_id}"
             return

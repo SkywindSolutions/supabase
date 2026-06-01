@@ -1,0 +1,838 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Wind forecast verification: compares wind speed and direction forecasts against matched observation rows. Bias, MAE, RMSE, ensemble coverage for speed, and lead-time diagnostics over the selected window. Internal use only.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Headline metrics ($__timeFilter)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 1,
+      "title": "Wind speed metrics",
+      "description": "Bias = AVG(forecast - observed); MAE = AVG(abs(error)); RMSE = sqrt(AVG(error^2)); In-envelope = observations between windspdlb and windspdub. 'Ensemble mean' uses windspdmean; 'NBM' uses windspd. Observations sourced from obs_wspd_kt on model_1 fhr=0 rows.",
+      "type": "table",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "velocityknot",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In-envelope"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT\n    CASE\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n      ELSE '72h+'\n    END AS lead_bucket,\n    f.windspdmean AS forecast_mean,\n    f.windspd     AS forecast_nbm,\n    f.windspdlb   AS forecast_lb,\n    f.windspdub   AS forecast_ub,\n    o.obs_wspd_kt AS observed_value\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n), errors AS (\n  SELECT lead_bucket,\n         observed_value,\n         forecast_lb, forecast_ub,\n         forecast_mean - observed_value AS err_mean,\n         forecast_nbm  - observed_value AS err_nbm\n  FROM matched\n  WHERE observed_value IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT 'Ensemble mean' AS \"Source\",\n       COUNT(*) FILTER (WHERE err_mean IS NOT NULL) AS \"N\",\n       AVG(err_mean)                    AS \"Bias (kt)\",\n       AVG(ABS(err_mean))               AS \"MAE (kt)\",\n       SQRT(AVG(err_mean * err_mean))   AS \"RMSE (kt)\",\n       AVG(CASE WHEN observed_value BETWEEN forecast_lb AND forecast_ub THEN 1.0 ELSE 0.0 END)\n         FILTER (WHERE forecast_lb IS NOT NULL AND forecast_ub IS NOT NULL) AS \"In-envelope\"\nFROM errors\nUNION ALL\nSELECT 'NBM',\n       COUNT(*) FILTER (WHERE err_nbm IS NOT NULL),\n       AVG(err_nbm),\n       AVG(ABS(err_nbm)),\n       SQRT(AVG(err_nbm * err_nbm)),\n       NULL::float\nFROM errors"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 2,
+      "title": "Wind direction metrics",
+      "description": "Direction error uses shortest signed angular difference, so +/-180 deg is the largest possible miss. 'Ensemble mean' uses winddirmean; 'NBM' uses winddir. Observations sourced from obs_wdir_degrees on model_1 fhr=0 rows.",
+      "type": "table",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "degree",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT\n    CASE\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n      WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n      ELSE '72h+'\n    END AS lead_bucket,\n    f.winddirmean AS forecast_mean,\n    f.winddir     AS forecast_nbm,\n    o.obs_wdir_degrees AS observed_value\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n), errors AS (\n  SELECT lead_bucket,\n         (MOD((forecast_mean - observed_value + 540)::numeric, 360) - 180)::float AS err_mean,\n         (MOD((forecast_nbm  - observed_value + 540)::numeric, 360) - 180)::float AS err_nbm\n  FROM matched\n  WHERE observed_value IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT 'Ensemble mean' AS \"Source\",\n       COUNT(*) FILTER (WHERE err_mean IS NOT NULL) AS \"N\",\n       AVG(err_mean)                  AS \"Circular bias (deg)\",\n       AVG(ABS(err_mean))             AS \"MAE (deg)\",\n       SQRT(AVG(err_mean * err_mean)) AS \"RMSE (deg)\"\nFROM errors\nUNION ALL\nSELECT 'NBM',\n       COUNT(*) FILTER (WHERE err_nbm IS NOT NULL),\n       AVG(err_nbm),\n       AVG(ABS(err_nbm)),\n       SQRT(AVG(err_nbm * err_nbm))\nFROM errors"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 3,
+      "title": "Daily wind speed Bias and MAE",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Wind speed error (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean - o.obs_wspd_kt AS err_mean,\n         f.windspd     - o.obs_wspd_kt AS err_nbm\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND o.obs_wspd_kt IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(err_mean)        AS \"Bias (mean)\",\n       AVG(ABS(err_mean))   AS \"MAE (mean)\",\n       AVG(err_nbm)         AS \"Bias (NBM)\",\n       AVG(ABS(err_nbm))    AS \"MAE (NBM)\"\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY 1\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 4,
+      "title": "Daily wind direction Bias and MAE",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Direction error (deg)"
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         (MOD((f.winddirmean - o.obs_wdir_degrees + 540)::numeric, 360) - 180)::float AS err_mean,\n         (MOD((f.winddir     - o.obs_wdir_degrees + 540)::numeric, 360) - 180)::float AS err_nbm\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND o.obs_wdir_degrees IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT date_trunc('day', \"timestamp\") AS \"time\",\n       AVG(err_mean)        AS \"Circular bias (mean)\",\n       AVG(ABS(err_mean))   AS \"MAE (mean)\",\n       AVG(err_nbm)         AS \"Circular bias (NBM)\",\n       AVG(ABS(err_nbm))    AS \"MAE (NBM)\"\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY 1\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 5,
+      "title": "Wind speed MAE by lead-time bucket",
+      "type": "barchart",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "MAE (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean - COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) AS error\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket, AVG(ABS(error)) AS mae\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 6,
+      "title": "Wind direction MAE by lead-time bucket",
+      "type": "barchart",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "MAE (deg)"
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         (MOD((f.winddirmean - COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) + 540)::numeric, 360) - 180)::float AS error\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket, AVG(ABS(error)) AS mae\nFROM matched\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 7,
+      "title": "Matched sample count by lead bucket",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\n  SELECT CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         COALESCE(o.obs_wspd_kt, o.windspd, f.windspd) AS speed_obs,\n         COALESCE(o.obs_wdir_degrees, o.winddir, f.winddir) AS direction_obs\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt, o.obs_wdir_degrees, o.windspd, o.winddir\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT lead_bucket AS \"Lead bucket\",\n       COUNT(*) FILTER (WHERE speed_obs IS NOT NULL) AS \"Wind speed pairs\",\n       COUNT(*) FILTER (WHERE direction_obs IS NOT NULL) AS \"Wind direction pairs\"\nFROM base\nWHERE lead_bucket IN ($lead_bucket)\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 8,
+      "title": "Observed vs forecast wind speed",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Wind speed (kt)"
+          },
+          "unit": "velocityknot"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean AS \"Forecast (mean)\",\n         f.windspd     AS \"Forecast (NBM)\",\n         o.obs_wspd_kt AS \"Observed\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\"\nFROM matched\nWHERE \"Observed\" IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\nORDER BY \"time\""
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "id": 9,
+      "title": "Observed vs forecast wind direction",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Direction (deg)"
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (mean)_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast (NBM)_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed_sm1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed_sp1"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.winddirmean AS \"Forecast (mean)\",\n         f.winddir     AS \"Forecast (NBM)\",\n         o.obs_wdir_degrees AS \"Observed\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wdir_degrees\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wdir_degrees IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.winddirmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n), src AS (\n  SELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\"\n  FROM matched\n  WHERE \"Observed\" IS NOT NULL\n    AND lead_bucket IN ($lead_bucket)\n)\nSELECT w.\"time\",\n       w.v1_s0 AS \"Forecast (mean)\", w.v1_sm1 AS \"Forecast (mean)_sm1\", w.v1_sp1 AS \"Forecast (mean)_sp1\",\n       w.v2_s0 AS \"Forecast (NBM)\", w.v2_sm1 AS \"Forecast (NBM)_sm1\", w.v2_sp1 AS \"Forecast (NBM)_sp1\",\n       w.v3_s0 AS \"Observed\", w.v3_sm1 AS \"Observed_sm1\", w.v3_sp1 AS \"Observed_sp1\"\nFROM public.fn_wrap_directions(\n  (SELECT array_agg(\"time\"            ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Forecast (mean)\" ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Forecast (NBM)\"  ORDER BY \"time\") FROM src),\n  (SELECT array_agg(\"Observed\"        ORDER BY \"time\") FROM src)\n) w\nORDER BY w.\"time\""
+        }
+      ]
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "internal",
+    "wind",
+    "verification"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "grp_mobilebay",
+          "value": "grp_mobilebay"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT group_id FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "group",
+        "options": [],
+        "query": "SELECT DISTINCT group_id FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Group"
+      },
+      {
+        "current": {
+          "text": "fog_1",
+          "value": "fog_1"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "model",
+        "options": [],
+        "query": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Model"
+      },
+      {
+        "current": {
+          "text": "Mobile Bay",
+          "value": "Mobile Bay"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' AND model = '$model' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "location",
+        "options": [],
+        "query": "SELECT DISTINCT locname FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' AND model = '$model' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location"
+      },
+      {
+        "current": {
+          "text": "10",
+          "value": "10"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' AND locname = '$location' AND model = '$model' ORDER BY height_m ASC",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "height_m",
+        "options": [],
+        "query": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' AND locname = '$location' AND model = '$model' ORDER BY height_m ASC",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query",
+        "label": "Height (m)"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT lead_bucket FROM (VALUES ('0-6h', 0), ('6-12h', 1), ('12-24h', 2), ('24-48h', 3), ('48-72h', 4), ('72h+', 5)) AS b(lead_bucket, sort_order) ORDER BY sort_order",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": "'0-6h','6-12h','12-24h','24-48h','48-72h','72h+'",
+        "multi": true,
+        "name": "lead_bucket",
+        "options": [],
+        "query": "SELECT lead_bucket FROM (VALUES ('0-6h', 0), ('6-12h', 1), ('12-24h', 2), ('24-48h', 3), ('48-72h', 4), ('72h+', 5)) AS b(lead_bucket, sort_order) ORDER BY sort_order",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Lead-time bucket"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Wind Forecast Verification (Internal)",
+  "uid": "internal-wind-verification",
+  "version": 1,
+  "weekStart": ""
+}

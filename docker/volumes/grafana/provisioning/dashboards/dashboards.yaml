@@ -145,3 +145,15 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_sendero
+
+  # SSA Marine Forecasts (tide, tide_wind, wind)
+  - name: SSA Marine Forecasts
+    orgId: 1
+    folder: SSA Marine Forecasts
+    folderUid: cust-grp-ssamarine
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_ssamarine

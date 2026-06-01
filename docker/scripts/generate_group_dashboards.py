@@ -56,8 +56,6 @@ log = logging.getLogger(__name__)
 # Extend this dict when new customer groups are added.
 # ---------------------------------------------------------------------------
 GROUP_DISPLAY_NAMES: dict[str, str] = {
-    "group_alpha":       "Alpha Maritime Forecasts",
-    "group_beta":        "Beta Offshore Forecasts",
     "grp_mobilebay":     "Mobile Bay Forecasts",
     "grp_pascagoula":     "Pascagoula Forecasts",
     "grp_portrichey":   "Port Richey Forecasts",
@@ -66,6 +64,7 @@ GROUP_DISPLAY_NAMES: dict[str, str] = {
     "grp_chatham":      "Chatham Forecasts",
     "grp_oceanCay":     "Ocean Cay Forecasts",
     "grp_sendero":      "Sendero Forecasts",
+    "grp_ssamarine":    "SSA Marine Forecasts",
 }
 
 # Data-type → columns checked to detect whether a group has that data.
@@ -88,11 +87,22 @@ TEMPLATE_NAMES: dict[str, str] = {
 
 COMBINED_DASHBOARDS: dict[str, tuple[str, ...]] = {
     "wind_visibility": ("visibility", "wind"),
+    "tide_wind": ("wind", "tide"),
 }
 
 COMBINED_DASHBOARD_GROUPS: dict[str, tuple[str, ...]] = {
     "grp_mobilebay": ("wind_visibility",),
     "grp_pascagoula": ("wind_visibility",),
+    "grp_ssamarine": ("tide_wind",),
+}
+
+TIDE_GRAFANA_UNITS: dict[str, str] = {
+    "ft": "lengthft",
+    "m": "lengthm",
+}
+
+LEGACY_WIND_HEIGHT_M: dict[str, int] = {
+    "grp_ssamarine": 10,
 }
 
 # Per-group, per-dashboard default model mapping.
@@ -313,8 +323,10 @@ def count_group_wind_heights(conn_str: str, group_id: str) -> int:
     except ImportError:
         return -1
 
-    sql = """
-        SELECT COUNT(DISTINCT COALESCE(height_m, 20))
+    legacy_wind_height_m = LEGACY_WIND_HEIGHT_M.get(group_id, 20)
+
+    sql = f"""
+        SELECT COUNT(DISTINCT COALESCE(height_m, {legacy_wind_height_m}))
         FROM public.forecast_data
         WHERE group_id = %s AND windspdmean IS NOT NULL;
     """
@@ -328,6 +340,38 @@ def count_group_wind_heights(conn_str: str, group_id: str) -> int:
     except Exception as exc:
         log.warning("Failed to count wind heights for %s: %s", group_id, exc)
         return -1
+
+
+def get_group_unit_preference(
+    conn_str: str,
+    group_id: str,
+    variable_key: str,
+    fallback_unit: str,
+) -> str:
+    """Return a group-level display unit from forecast metadata, if available."""
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return fallback_unit
+
+    sql = """
+        SELECT public.fn_forecast_display_unit(%s, NULL, %s, %s);
+    """
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id, variable_key, fallback_unit))
+                row = cur.fetchone()
+                return row[0] if row and row[0] else fallback_unit
+    except Exception as exc:
+        log.warning(
+            "Failed to get unit preference for %s/%s: %s",
+            group_id,
+            variable_key,
+            exc,
+        )
+        return fallback_unit
 
 
 def sanitise_folder_uid(group_id: str) -> str:
@@ -344,6 +388,7 @@ def make_group_dashboard(
     location_count: int = -1,
     default_location: str | None = None,
     wind_height_count: int = -1,
+    tide_display_unit: str = "ft",
 ) -> dict:
     """
     Transform a shared customer dashboard template into a group-specific
@@ -358,12 +403,14 @@ def make_group_dashboard(
       and adjust "Current Tide" panel positioning to sit next to Tide Forecast Data
     """
     d = copy.deepcopy(template)
+    legacy_wind_height_m = LEGACY_WIND_HEIGHT_M.get(group_id, 20)
 
     type_labels = {
         "visibility": "Visibility",
         "wind":       "Wind",
         "tide":       "Tide",
         "wind_visibility": "Wind & Visibility",
+        "tide_wind": "Tide & Wind",
     }
     label = type_labels.get(dtype, dtype.title())
 
@@ -402,7 +449,13 @@ def make_group_dashboard(
             else:
                 var.pop("current", None)
         elif var.get("name") == "height_m":
-            var["current"] = {"text": "All", "value": "$__all"}
+            if wind_height_count == 1:
+                var["current"] = {
+                    "text": str(legacy_wind_height_m),
+                    "value": str(legacy_wind_height_m),
+                }
+            else:
+                var["current"] = {"text": "All", "value": "$__all"}
             var["hide"] = 2 if wind_height_count == 1 else 0
         elif var.get("name") == "location" and default_location:
             var["current"] = {"text": default_location, "value": default_location}
@@ -413,6 +466,11 @@ def make_group_dashboard(
 
     # -- Hardcode group_id in all panel SQL ----------------------------------
     _patch_group_id(d.get("panels", []), group_id)
+
+    if "tide" in dtype and tide_display_unit != "ft":
+        _patch_tide_display_units(d, tide_display_unit)
+    if "wind" in dtype and legacy_wind_height_m != 20:
+        _patch_legacy_wind_height(d, legacy_wind_height_m)
 
     # -- Filter panels for single-location groups (tide only) -----------------
     if dtype == "tide" and location_count == 1:
@@ -449,20 +507,27 @@ def make_combined_group_dashboard(
     display_name: str,
     default_location: str | None = None,
     wind_height_count: int = -1,
+    tide_display_unit: str = "ft",
 ) -> dict:
     """Build a single customer dashboard from multiple customer templates."""
     source_types = COMBINED_DASHBOARDS[combined_type]
     d = copy.deepcopy(templates[source_types[0]])
 
     d["uid"] = f"{combined_type}-{group_id}"
-    d["title"] = f"{display_name} — Wind & Visibility Forecast"
+    combined_labels = {
+        "wind_visibility": "Wind & Visibility",
+        "tide_wind": "Tide & Wind",
+    }
+    combined_label = combined_labels.get(combined_type, combined_type.replace("_", " & ").title())
+
+    d["title"] = f"{display_name} — {combined_label} Forecast"
     d["description"] = (
-        f"Wind and visibility forecast data for {display_name}. "
+        f"{combined_label} forecast data for {display_name}. "
         "Customer-facing dashboard. No observation data."
     )
     d["editable"] = False
-    d["tags"] = ["customer", "wind", "visibility", "combined"]
-    d["time"] = {"from": "now", "to": "now+24h"}
+    d["tags"] = ["customer", *source_types, "combined"]
+    d["time"] = {"from": "now", "to": "now+7d" if combined_type == "tide_wind" else "now+24h"}
 
     panels: list[dict] = []
     next_id = 1
@@ -505,11 +570,372 @@ def make_combined_group_dashboard(
     d = make_group_dashboard(
         d, group_id, combined_type, display_name, default_location=default_location,
         wind_height_count=wind_height_count,
+        tide_display_unit=tide_display_unit,
     )
-    _patch_non_nbm_wind_startdt_filters(d.get("panels", []), f"'{group_id}'")
-    d["time"] = {"from": "now", "to": "now+24h"}
-    d["tags"] = ["customer", "wind", "visibility", "combined"]
+    if "wind" in source_types:
+        _patch_non_nbm_wind_startdt_filters(d.get("panels", []), f"'{group_id}'")
+    if combined_type == "tide_wind":
+        _patch_tide_wind_dashboard(d, group_id)
+    d["time"] = {"from": "now", "to": "now+7d" if combined_type == "tide_wind" else "now+24h"}
+    d["tags"] = ["customer", *source_types, "combined"]
     return d
+
+
+def _patch_tide_wind_dashboard(dashboard: dict, group_id: str) -> None:
+    legacy_wind_height_m = LEGACY_WIND_HEIGHT_M.get(group_id, 20)
+    _add_location_timezone_variable(dashboard, group_id)
+    _patch_tide_wind_time_panel(dashboard.get("panels", []), group_id, legacy_wind_height_m)
+    removed_y = _remove_panel_by_title_prefix(dashboard.get("panels", []), "Wind Direction Forecast")
+    if removed_y is not None:
+        _shift_panels_below(dashboard.get("panels", []), removed_y, -9)
+    _patch_tide_wind_speed_direction_panel(dashboard.get("panels", []), group_id, legacy_wind_height_m)
+
+
+def _add_location_timezone_variable(dashboard: dict, group_id: str) -> None:
+    templating = dashboard.setdefault("templating", {}).setdefault("list", [])
+    if any(var.get("name") == "location_tz" for var in templating):
+        return
+
+    query = (
+        "SELECT COALESCE("
+        f"(SELECT timezone FROM public.forecast_locations WHERE group_id = '{group_id}' AND locname = '$location' LIMIT 1), "
+        f"(SELECT default_timezone FROM public.customer_groups WHERE group_id = '{group_id}'), "
+        "'UTC')"
+    )
+    templating.append({
+        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+        "definition": query,
+        "hide": 2,
+        "includeAll": False,
+        "multi": False,
+        "name": "location_tz",
+        "query": query,
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location Timezone",
+    })
+
+
+def _patch_tide_wind_time_panel(panels: list, group_id: str, legacy_wind_height_m: int) -> None:
+    for panel in panels:
+        if panel.get("title") == "" and str(panel.get("description", "")).startswith("Timestamp of"):
+            grid = panel.setdefault("gridPos", {})
+            if grid.get("h", 0) < 3:
+                _shift_panels_in_grid_region(
+                    panels,
+                    min_x=grid.get("x", 0),
+                    min_y=grid.get("y", 0) + grid.get("h", 0),
+                    max_y=grid.get("y", 0) + 9,
+                    y_delta=1,
+                )
+                grid["h"] = 3
+            panel["type"] = "table"
+            panel["description"] = "Current UTC and forecast-location local time for the latest wind sample at this height."
+            panel["fieldConfig"]["defaults"].pop("unit", None)
+            panel["fieldConfig"]["defaults"].setdefault("custom", {})["align"] = "center"
+            panel["options"] = {
+                "cellHeight": "md",
+                "footer": {
+                    "countRows": False,
+                    "fields": "",
+                    "reducer": ["sum"],
+                    "show": False,
+                },
+                "showHeader": False,
+            }
+            panel["targets"][0]["format"] = "table"
+            panel["targets"][0]["rawSql"] = (
+                "WITH latest AS (\n"
+                "  SELECT MAX(timestamp) AS ts\n"
+                "  FROM forecast_data\n"
+                "  WHERE windspdmean IS NOT NULL\n"
+                "    AND locname = '$location'\n"
+                f"    AND group_id = '{group_id}'\n"
+                "    AND model = '$model'\n"
+                f"    AND (height_m = ${{height_m:raw}} OR (height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}))\n"
+                "    AND timestamp <= NOW()::TIMESTAMPTZ\n"
+                ")\n"
+                "SELECT 'UTC' AS \"Label\", to_char(ts AT TIME ZONE 'UTC', 'MM-DD HH24:MI') AS \"Time\"\n"
+                "FROM latest\n"
+                "WHERE ts IS NOT NULL\n"
+                "UNION ALL\n"
+                "SELECT 'Local' AS \"Label\", to_char(ts AT TIME ZONE '$location_tz', 'MM-DD HH24:MI') AS \"Time\"\n"
+                "FROM latest\n"
+                "WHERE ts IS NOT NULL"
+            )
+        if "panels" in panel:
+            _patch_tide_wind_time_panel(panel["panels"], group_id, legacy_wind_height_m)
+
+
+def _shift_panels_in_grid_region(
+    panels: list,
+    min_x: int,
+    min_y: int,
+    max_y: int,
+    y_delta: int,
+) -> None:
+    for panel in panels:
+        grid = panel.get("gridPos", {})
+        if grid.get("x", 0) >= min_x and min_y <= grid.get("y", 0) <= max_y:
+            grid["y"] = max(0, grid.get("y", 0) + y_delta)
+        if "panels" in panel:
+            _shift_panels_in_grid_region(panel["panels"], min_x, min_y, max_y, y_delta)
+
+
+def _remove_panel_by_title_prefix(panels: list, title_prefix: str) -> int | None:
+    for index, panel in enumerate(list(panels)):
+        if str(panel.get("title", "")).startswith(title_prefix):
+            removed = panels.pop(index)
+            return removed.get("gridPos", {}).get("y")
+        if "panels" in panel:
+            removed_y = _remove_panel_by_title_prefix(panel["panels"], title_prefix)
+            if removed_y is not None:
+                return removed_y
+    return None
+
+
+def _shift_panels_below(panels: list, y_threshold: int, y_delta: int) -> None:
+    for panel in panels:
+        grid = panel.get("gridPos", {})
+        if grid.get("y", 0) > y_threshold:
+            grid["y"] = max(0, grid.get("y", 0) + y_delta)
+        if "panels" in panel:
+            _shift_panels_below(panel["panels"], y_threshold, y_delta)
+
+
+def _patch_tide_wind_speed_direction_panel(panels: list, group_id: str, legacy_wind_height_m: int) -> None:
+    for panel in panels:
+        title = str(panel.get("title", ""))
+        if title.startswith("Wind Speed Forecast"):
+            panel["title"] = "Wind Forecast (${height_m} m)"
+            panel["description"] = (
+                "Wind speed forecast with predicted wind direction on the right y-axis. "
+                "Direction uses wrapped shifted copies to avoid false 360-to-0 jumps."
+            )
+            panel["targets"][0]["rawSql"] = _tide_wind_overlay_sql(group_id, legacy_wind_height_m)
+            overrides = panel.setdefault("fieldConfig", {}).setdefault("overrides", [])
+            overrides.extend(_wind_direction_overlay_overrides())
+            return
+        if "panels" in panel:
+            _patch_tide_wind_speed_direction_panel(panel["panels"], group_id, legacy_wind_height_m)
+
+
+def _tide_wind_overlay_sql(group_id: str, legacy_wind_height_m: int) -> str:
+    return (
+        "WITH src AS (\n"
+        "  SELECT\n"
+        "    timestamp AS \"time\",\n"
+        "    windspdmean,\n"
+        "    windspdlb,\n"
+        "    windspdub,\n"
+        "    winddirmean\n"
+        "  FROM forecast_data\n"
+        "  WHERE\n"
+        "    windspdmean IS NOT NULL\n"
+        "    AND locname = '$location'\n"
+        f"    AND group_id = '{group_id}'\n"
+        "    AND model = '$model'\n"
+        "    AND '$model' NOT IN ('wind_nbm', 'tide_nbm')\n"
+        f"    AND (height_m = ${{height_m:raw}} OR (height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}))\n"
+        "    AND $__timeFilter(timestamp)\n"
+        "  UNION ALL\n"
+        "  SELECT\n"
+        "    forecastdtutc AS \"time\",\n"
+        "    windspdmean,\n"
+        "    windspdlb,\n"
+        "    windspdub,\n"
+        "    winddirmean\n"
+        "  FROM forecast_data\n"
+        "  WHERE\n"
+        "    windspdmean IS NOT NULL\n"
+        "    AND locname = '$location'\n"
+        f"    AND group_id = '{group_id}'\n"
+        "    AND model = '$model'\n"
+        "    AND '$model' IN ('wind_nbm', 'tide_nbm')\n"
+        f"    AND (height_m = ${{height_m:raw}} OR (height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}))\n"
+        "    AND startdt = (\n"
+        "      SELECT MAX(startdt)\n"
+        "      FROM forecast_data\n"
+        "      WHERE startdt <= $__timeFrom()\n"
+        "        AND locname = '$location'\n"
+        f"        AND group_id = '{group_id}'\n"
+        "        AND model = '$model'\n"
+        f"        AND (height_m = ${{height_m:raw}} OR (height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}))\n"
+        "        AND windspdmean IS NOT NULL\n"
+        "    )\n"
+        ")\n"
+        "SELECT\n"
+        "  src.\"time\",\n"
+        "  src.windspdmean,\n"
+        "  src.windspdlb,\n"
+        "  src.windspdub,\n"
+        "  w.v1_s0 AS winddirmean,\n"
+        "  w.v1_sm1 AS winddirmean_sm1,\n"
+        "  w.v1_sp1 AS winddirmean_sp1,\n"
+        "  (MOD(MOD(src.winddirmean::numeric, 360) + 360, 360))::float AS winddir_tooltip\n"
+        "FROM src\n"
+        "JOIN public.fn_wrap_directions(\n"
+        "  (SELECT array_agg(\"time\" ORDER BY \"time\") FROM src),\n"
+        "  (SELECT array_agg(winddirmean ORDER BY \"time\") FROM src)\n"
+        ") w USING (\"time\")\n"
+        "ORDER BY src.\"time\""
+    )
+
+
+def _wind_direction_overlay_overrides() -> list[dict]:
+    base_properties = [
+        {"id": "unit", "value": "degree"},
+        {"id": "min", "value": 0},
+        {"id": "max", "value": 360},
+        {"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}},
+        {"id": "custom.axisPlacement", "value": "right"},
+        {"id": "custom.axisLabel", "value": "Direction (\u00b0)"},
+        {"id": "custom.lineStyle", "value": {"dash": [6, 6], "fill": "dash"}},
+        {"id": "custom.lineWidth", "value": 2},
+        {"id": "custom.fillOpacity", "value": 0},
+        {"id": "custom.showPoints", "value": "auto"},
+    ]
+    return [
+        {
+            "matcher": {"id": "byName", "options": "winddirmean"},
+            "properties": [
+                {"id": "displayName", "value": "Predicted Wind Direction"},
+                *base_properties,
+                {"id": "custom.hideFrom", "value": {"legend": False, "tooltip": True, "viz": False}},
+            ],
+        },
+        {
+            "matcher": {"id": "byName", "options": "winddirmean_sm1"},
+            "properties": [
+                *base_properties,
+                {"id": "custom.hideFrom", "value": {"legend": True, "tooltip": True, "viz": False}},
+            ],
+        },
+        {
+            "matcher": {"id": "byName", "options": "winddirmean_sp1"},
+            "properties": [
+                *base_properties,
+                {"id": "custom.hideFrom", "value": {"legend": True, "tooltip": True, "viz": False}},
+            ],
+        },
+        {
+            "matcher": {"id": "byName", "options": "winddir_tooltip"},
+            "properties": [
+                {"id": "displayName", "value": "Predicted Wind Direction"},
+                {"id": "unit", "value": "degree"},
+                {"id": "custom.hideFrom", "value": {"legend": True, "tooltip": False, "viz": True}},
+            ],
+        },
+    ]
+
+
+def _patch_tide_display_units(dashboard: dict, display_unit: str) -> None:
+    grafana_unit = TIDE_GRAFANA_UNITS.get(display_unit, f"suffix:{display_unit}")
+    field_names = {
+        "astrotide": "astrotide_display",
+        "prelimtide": "prelimtide_display",
+        "tidemean": "tidemean_display",
+        "tidelb": "tidelb_display",
+        "tideub": "tideub_display",
+    }
+    _patch_tide_sql(dashboard.get("panels", []))
+    _replace_exact_json_values(dashboard, field_names)
+    _replace_json_value(dashboard, "lengthft", grafana_unit)
+    _replace_json_value(dashboard, "Tide Height (ft", f"Tide Height ({display_unit}")
+
+
+def _patch_legacy_wind_height(value, legacy_wind_height_m: int) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if isinstance(child, str):
+                child = child.replace("COALESCE(height_m, 20)", f"COALESCE(height_m, {legacy_wind_height_m})")
+                child = child.replace(
+                    "height_m IS NULL AND ${height_m:raw} = 20",
+                    f"height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}",
+                )
+                child = child.replace(
+                    "height_m IS NULL AND 20 = 20",
+                    f"height_m IS NULL AND {legacy_wind_height_m} = {legacy_wind_height_m}",
+                )
+                value[key] = child
+            else:
+                _patch_legacy_wind_height(child, legacy_wind_height_m)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            if isinstance(child, str):
+                child = child.replace("COALESCE(height_m, 20)", f"COALESCE(height_m, {legacy_wind_height_m})")
+                child = child.replace(
+                    "height_m IS NULL AND ${height_m:raw} = 20",
+                    f"height_m IS NULL AND ${{height_m:raw}} = {legacy_wind_height_m}",
+                )
+                child = child.replace(
+                    "height_m IS NULL AND 20 = 20",
+                    f"height_m IS NULL AND {legacy_wind_height_m} = {legacy_wind_height_m}",
+                )
+                value[index] = child
+            else:
+                _patch_legacy_wind_height(child, legacy_wind_height_m)
+
+
+def _patch_tide_sql(panels: list) -> None:
+    replacements = {
+        "astrotide": "astrotide_display",
+        "prelimtide": "prelimtide_display",
+        "tidemean": "tidemean_display",
+        "tidelb": "tidelb_display",
+        "tideub": "tideub_display",
+    }
+
+    for panel in panels:
+        for target in panel.get("targets", []):
+            raw_sql = target.get("rawSql")
+            if not raw_sql or "tide" not in raw_sql.lower():
+                continue
+            raw_sql = raw_sql.replace("FROM forecast_data", "FROM public.v_forecast_data_display")
+            raw_sql = raw_sql.replace("FROM public.forecast_data", "FROM public.v_forecast_data_display")
+            for source_column, display_column in replacements.items():
+                raw_sql = re.sub(rf"\b{source_column}\b", display_column, raw_sql)
+            target["rawSql"] = raw_sql
+        if "panels" in panel:
+            _patch_tide_sql(panel["panels"])
+
+
+def _replace_json_value(value, old: str, new: str):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if child == old:
+                value[key] = new
+            elif isinstance(child, str) and old in child:
+                value[key] = child.replace(old, new)
+            else:
+                _replace_json_value(child, old, new)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            if child == old:
+                value[index] = new
+            elif isinstance(child, str) and old in child:
+                value[index] = child.replace(old, new)
+            else:
+                _replace_json_value(child, old, new)
+
+
+def _replace_exact_json_values(value, replacements: dict[str, str]) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == "rawSql":
+                continue
+            if isinstance(child, str) and child in replacements:
+                value[key] = replacements[child]
+            else:
+                _replace_exact_json_values(child, replacements)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            if isinstance(child, str) and child in replacements:
+                value[index] = replacements[child]
+            else:
+                _replace_exact_json_values(child, replacements)
 
 
 def _patch_non_nbm_wind_startdt_filters(panels: list, group_expr: str) -> None:
@@ -612,8 +1038,6 @@ def write_dashboards_yaml(
         merged[gid] = (meta["display_name"], meta["dtypes_str"])
 
     for gid, dtypes in group_dtypes.items():
-        if gid in ("group_alpha", "group_beta"):
-            continue
         display_name = GROUP_DISPLAY_NAMES.get(gid, gid)
         dtypes_str = ", ".join(sorted(dtypes)) if dtypes else "none"
         merged[gid] = (display_name, dtypes_str)
@@ -807,7 +1231,7 @@ def main() -> None:
 
     for group_id, dtypes in sorted(group_dtypes.items()):
         # Skip shared/internal-only groups that should never become customer folders.
-        if group_id in ("group_alpha", "group_beta", "grp_internal"):
+        if group_id in ("grp_internal",):
             log.info("Skipping shared reference group: %s", group_id)
             continue
 
@@ -837,10 +1261,15 @@ def main() -> None:
                 wind_height_count = -1 if args.dry_run else count_group_wind_heights(
                     conn_str, group_id
                 )
+                tide_display_unit = (
+                    "ft" if args.dry_run or "tide" not in source_types
+                    else get_group_unit_preference(conn_str, group_id, "tide_height", "ft")
+                )
                 dash = make_combined_group_dashboard(
                     templates, group_id, combined_type, display_name,
                     default_location=default_location,
                     wind_height_count=wind_height_count,
+                    tide_display_unit=tide_display_unit,
                 )
                 out_file = group_dir / f"{combined_type}.json"
                 combined_source_types.update(source_types)
@@ -882,12 +1311,17 @@ def main() -> None:
             wind_height_count = (
                 -1 if args.dry_run or dtype != "wind" else count_group_wind_heights(conn_str, group_id)
             )
+            tide_display_unit = (
+                "ft" if args.dry_run or dtype != "tide"
+                else get_group_unit_preference(conn_str, group_id, "tide_height", "ft")
+            )
 
             dash = make_group_dashboard(
                 templates[dtype], group_id, dtype, display_name,
                 location_count=location_count,
                 default_location=default_location,
                 wind_height_count=wind_height_count,
+                tide_display_unit=tide_display_unit,
             )
             out_file = group_dir / f"{dtype}.json"
 

@@ -1,0 +1,354 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Internal command-center dashboard for forecast, observation, run-completeness, and ingest health across all active forecast locations.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Critical\"\nFROM public.v_operational_forecast_status\nWHERE severity = 3\n  AND ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Critical",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Warning\"\nFROM public.v_operational_forecast_status\nWHERE severity = 2\n  AND ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Warning",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Healthy\"\nFROM public.v_operational_forecast_status\nWHERE severity = 0\n  AND ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Healthy",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "none", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT group_id || ':' || locid) AS \"Locations\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Locations",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "id": 5,
+      "options": {"colorMode": "none", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Product Rows\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Product Rows",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "id": 6,
+      "options": {"colorMode": "none", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Missing Obs\"\nFROM public.v_operational_forecast_status\nWHERE observation_status IN ('MISSING', 'WARNING', 'CRITICAL')\n  AND ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')",
+          "refId": "A"
+        }
+      ],
+      "title": "Observation Issues",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "description": "Primary command-center table. Sort by severity first, then group/location/product/model.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false},
+          "mappings": [
+            {"options": {"OK": {"color": "green", "index": 0}, "INFO": {"color": "blue", "index": 1}, "WARNING": {"color": "yellow", "index": 2}, "MISSING": {"color": "red", "index": 3}, "CRITICAL": {"color": "red", "index": 4}, "NO RUN": {"color": "blue", "index": 5}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 2}, {"color": "red", "value": 3}]}
+        },
+        "overrides": [
+          {"matcher": {"id": "byRegexp", "options": "Status$|Overall"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]},
+          {"matcher": {"id": "byRegexp", "options": "Time$|Run$|Ingest$"}, "properties": [{"id": "unit", "value": "dateTimeAsLocal"}]},
+          {"matcher": {"id": "byName", "options": "Horizon (h)"}, "properties": [{"id": "decimals", "value": 1}]},
+          {"matcher": {"id": "byName", "options": "Obs Age (h)"}, "properties": [{"id": "decimals", "value": 1}]}
+        ]
+      },
+      "gridPos": {"h": 14, "w": 24, "x": 0, "y": 4},
+      "id": 7,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT group_name AS \"Group\",\n       locname AS \"Location\",\n       product AS \"Product\",\n       model AS \"Model\",\n       overall_status AS \"Overall\",\n       forecast_status AS \"Forecast Status\",\n       run_status AS \"Run Status\",\n       observation_status AS \"Observation Status\",\n       ingest_status AS \"Ingest Status\",\n       latest_forecast_time AS \"Latest Forecast Time\",\n       forecast_horizon_hours AS \"Horizon (h)\",\n       latest_observation_time AS \"Latest Observation Time\",\n       observation_age_hours AS \"Obs Age (h)\",\n       latest_successful_startdt AS \"Latest Good Run\",\n       latest_any_startdt AS \"Latest Any Run\",\n       newer_empty_runs AS \"Newer Empty Runs\",\n       latest_ingest_time AS \"Latest Ingest\",\n       verification_rows_7d AS \"Verification Rows 7d\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')\n  AND ('$status' = '__all' OR overall_status = '$status')\nORDER BY severity DESC, group_name, locname, product, model",
+          "refId": "A"
+        }
+      ],
+      "title": "Location Product Health",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "description": "Only rows that require investigation: critical, warning, missing observations, stale ingest, or newer runs missing the product value.",
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false}, "mappings": [{"options": {"OK": {"color": "green", "index": 0}, "INFO": {"color": "blue", "index": 1}, "WARNING": {"color": "yellow", "index": 2}, "MISSING": {"color": "red", "index": 3}, "CRITICAL": {"color": "red", "index": 4}, "NO RUN": {"color": "blue", "index": 5}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
+        "overrides": [{"matcher": {"id": "byRegexp", "options": "Status$|Overall"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 18},
+      "id": 8,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT group_name AS \"Group\", locname AS \"Location\", product AS \"Product\", model AS \"Model\",\n       overall_status AS \"Overall\", forecast_status AS \"Forecast Status\", run_status AS \"Run Status\",\n       observation_status AS \"Observation Status\", ingest_status AS \"Ingest Status\",\n       ROUND(forecast_horizon_hours::numeric, 1) AS \"Horizon (h)\",\n       newer_empty_runs AS \"Newer Empty Runs\", missing_primary_rows AS \"Missing Primary\", missing_bounds_rows AS \"Missing Bounds\"\nFROM public.v_operational_forecast_status\nWHERE severity >= 2\n  AND ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')\n  AND ('$status' = '__all' OR overall_status = '$status')\nORDER BY severity DESC, group_name, locname, product, model",
+          "refId": "A"
+        }
+      ],
+      "title": "Needs Investigation",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
+        "overrides": [{"matcher": {"id": "byRegexp", "options": "Status$"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}]
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 28},
+      "id": 9,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT group_name AS \"Group\", locname AS \"Location\",\n       string_agg(product || ':' || model || '=' || overall_status, ', ' ORDER BY product, model) AS \"Products\",\n       MAX(severity) AS \"Worst Severity\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')\nGROUP BY group_name, locname\nORDER BY MAX(severity) DESC, group_name, locname",
+          "refId": "A"
+        }
+      ],
+      "title": "Product Coverage by Location",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false}, "mappings": [{"options": {"OK": {"color": "green", "index": 0}, "WARNING": {"color": "yellow", "index": 1}, "CRITICAL": {"color": "red", "index": 2}, "NO RUN": {"color": "blue", "index": 3}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
+        "overrides": [{"matcher": {"id": "byName", "options": "Run Status"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}]
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 28},
+      "id": 10,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT group_name AS \"Group\", locname AS \"Location\", product AS \"Product\", model AS \"Model\",\n       run_status AS \"Run Status\", latest_successful_startdt AS \"Latest Good Run\", latest_any_startdt AS \"Latest Any Run\",\n       latest_run_rows AS \"Rows\", missing_primary_rows AS \"Missing Primary\", missing_bounds_rows AS \"Missing Bounds\", newer_empty_runs AS \"Newer Empty Runs\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')\nORDER BY CASE run_status WHEN 'CRITICAL' THEN 3 WHEN 'WARNING' THEN 2 WHEN 'NO RUN' THEN 1 ELSE 0 END DESC, group_name, locname, product, model",
+          "refId": "A"
+        }
+      ],
+      "title": "Run Completeness",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false}, "mappings": [{"options": {"OK": {"color": "green", "index": 0}, "WARNING": {"color": "yellow", "index": 1}, "MISSING": {"color": "red", "index": 2}, "CRITICAL": {"color": "red", "index": 3}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
+        "overrides": [{"matcher": {"id": "byName", "options": "Observation Status"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}, {"matcher": {"id": "byName", "options": "Latest Observation Time"}, "properties": [{"id": "unit", "value": "dateTimeAsLocal"}]}]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 37},
+      "id": 11,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT group_name AS \"Group\", locname AS \"Location\", product AS \"Product\", model AS \"Model\",\n       observation_status AS \"Observation Status\", latest_observation_time AS \"Latest Observation Time\",\n       ROUND(observation_age_hours::numeric, 1) AS \"Obs Age (h)\", observation_rows AS \"Observation Rows\",\n       latest_verification_time AS \"Latest Verification Time\", verification_rows_7d AS \"Verification Rows 7d\"\nFROM public.v_operational_forecast_status\nWHERE ('$group' = '__all' OR group_id = '$group')\n  AND ('$product' = '__all' OR product = '$product')\nORDER BY CASE observation_status WHEN 'CRITICAL' THEN 3 WHEN 'MISSING' THEN 2 WHEN 'WARNING' THEN 1 ELSE 0 END DESC, group_name, locname, product, model",
+          "refId": "A"
+        }
+      ],
+      "title": "Observation and Verification Availability",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": ["internal", "operations", "status", "monitoring"],
+  "templating": {
+    "list": [
+      {
+        "allValue": "__all",
+        "current": {"text": "All", "value": "__all"},
+        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+        "definition": "SELECT group_id FROM public.customer_groups ORDER BY 1",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "group",
+        "query": "SELECT group_id FROM public.customer_groups ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Group"
+      },
+      {
+        "allValue": "__all",
+        "current": {"text": "All", "value": "__all"},
+        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+        "definition": "SELECT DISTINCT product FROM public.v_operational_forecast_status ORDER BY 1",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "product",
+        "query": "SELECT DISTINCT product FROM public.v_operational_forecast_status ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Product"
+      },
+      {
+        "allValue": "__all",
+        "current": {"text": "All", "value": "__all"},
+        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+        "definition": "SELECT DISTINCT overall_status FROM public.v_operational_forecast_status ORDER BY 1",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "status",
+        "query": "SELECT DISTINCT overall_status FROM public.v_operational_forecast_status ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Status"
+      }
+    ]
+  },
+  "time": {"from": "now-24h", "to": "now+7d"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Operational Status",
+  "uid": "internal-operational-status",
+  "version": 1,
+  "weekStart": ""
+}
