@@ -65,6 +65,8 @@ GROUP_DISPLAY_NAMES: dict[str, str] = {
     "grp_oceanCay":     "Ocean Cay Forecasts",
     "grp_sendero":      "Sendero Forecasts",
     "grp_ssamarine":    "SSA Marine Forecasts",
+    "grp_carnival":     "Carnival Forecasts",
+    "grp_lakeWorth":    "Lake Worth Forecasts",
 }
 
 # Data-type → columns checked to detect whether a group has that data.
@@ -94,6 +96,7 @@ COMBINED_DASHBOARD_GROUPS: dict[str, tuple[str, ...]] = {
     "grp_mobilebay": ("wind_visibility",),
     "grp_pascagoula": ("wind_visibility",),
     "grp_ssamarine": ("tide_wind",),
+    "grp_carnival": ("tide_wind",),
 }
 
 TIDE_GRAFANA_UNITS: dict[str, str] = {
@@ -419,7 +422,7 @@ def make_group_dashboard(
     d["title"] = f"{display_name} — {label} Forecast"
     d["description"] = (
         f"{label} forecast data for {display_name}. "
-        "Customer-facing dashboard. No observation data."
+        "Customer-facing dashboard."
     )
     # Prevent users from saving changes through the UI
     d["editable"] = False
@@ -523,7 +526,7 @@ def make_combined_group_dashboard(
     d["title"] = f"{display_name} — {combined_label} Forecast"
     d["description"] = (
         f"{combined_label} forecast data for {display_name}. "
-        "Customer-facing dashboard. No observation data."
+        "Customer-facing dashboard."
     )
     d["editable"] = False
     d["tags"] = ["customer", *source_types, "combined"]
@@ -712,7 +715,6 @@ def _patch_tide_wind_speed_direction_panel(panels: list, group_id: str, legacy_w
             panel["title"] = "Wind Forecast (${height_m} m)"
             panel["description"] = (
                 "Wind speed forecast with predicted wind direction on the right y-axis. "
-                "Direction uses wrapped shifted copies to avoid false 360-to-0 jumps."
             )
             panel["targets"][0]["rawSql"] = _tide_wind_overlay_sql(group_id, legacy_wind_height_m)
             overrides = panel.setdefault("fieldConfig", {}).setdefault("overrides", [])
@@ -825,7 +827,11 @@ def _wind_direction_overlay_overrides() -> list[dict]:
             "properties": [
                 {"id": "displayName", "value": "Predicted Wind Direction"},
                 {"id": "unit", "value": "degree"},
-                {"id": "custom.hideFrom", "value": {"legend": True, "tooltip": False, "viz": True}},
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}},
+                {"id": "custom.axisPlacement", "value": "right"},
+                {"id": "custom.lineWidth", "value": 0},
+                {"id": "custom.showPoints", "value": "never"},
+                {"id": "custom.hideFrom", "value": {"legend": True, "tooltip": False, "viz": False}},
             ],
         },
     ]

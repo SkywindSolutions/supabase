@@ -146,6 +146,30 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_sendero
 
+  # Carnival Forecasts (tide, tide_wind, wind)
+  - name: Carnival Forecasts
+    orgId: 1
+    folder: Carnival Forecasts
+    folderUid: cust-grp-carnival
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_carnival
+
+  # Lake Worth Forecasts (tide)
+  - name: Lake Worth Forecasts
+    orgId: 1
+    folder: Lake Worth Forecasts
+    folderUid: cust-grp-lakeWorth
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_lakeWorth
+
   # SSA Marine Forecasts (tide, tide_wind, wind)
   - name: SSA Marine Forecasts
     orgId: 1

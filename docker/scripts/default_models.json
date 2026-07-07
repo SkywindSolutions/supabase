@@ -11,6 +11,8 @@
     "grp_chatham":       { "tide": "tide_nbm" },
     "grp_oceanCay":      { "wind": "wind_nbm" },
     "grp_sendero":       { "wind": "wind_nbm" },
-    "grp_ssamarine":     { "tide": "tide_nbm", "wind": "tide_nbm", "tide_wind": "tide_nbm" }
+    "grp_ssamarine":     { "tide": "tide_nbm", "wind": "tide_nbm", "tide_wind": "tide_nbm" },
+    "grp_carnival":      { "tide": "tide_blend", "wind": "wind_nbm", "tide_wind": "tide_blend" },
+    "grp_lakeWorth":     { "tide": "tide_blend" }
   }
 }

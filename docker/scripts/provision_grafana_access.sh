@@ -83,6 +83,10 @@ PW_MSC=${PW_MSC:-$(_get_env PW_MSC)}
 TEST_PW_MSC=${TEST_PW_MSC:-$(_get_env TEST_PW_MSC)}
 PW_PASCAGOULA=${PW_PASCAGOULA:-$(_get_env PW_PASCAGOULA)}
 TEST_PW_PASCAGOULA=${TEST_PW_PASCAGOULA:-$(_get_env TEST_PW_PASCAGOULA)}
+PW_SSA_MARINE=${PW_SSA_MARINE:-$(_get_env PW_SSA_MARINE)}
+TEST_PW_SSA_MARINE=${TEST_PW_SSA_MARINE:-$(_get_env TEST_PW_SSA_MARINE)}
+PW_CARNIVAL=${PW_CARNIVAL:-$(_get_env PW_CARNIVAL)}
+TEST_PW_CARNIVAL=${TEST_PW_CARNIVAL:-$(_get_env TEST_PW_CARNIVAL)}
 
 : "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER not set in .env}"
 : "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD not set in .env}"
@@ -112,6 +116,10 @@ PW_MSC="${PW_MSC:-MSCWinds2026!}"
 TEST_PW_MSC="${TEST_PW_MSC:-MSC2026!}"
 PW_PASCAGOULA="${PW_PASCAGOULA:-PascagoulaWindVis2026!}"
 TEST_PW_PASCAGOULA="${TEST_PW_PASCAGOULA:-Pascagoula2026!}"
+PW_SSA_MARINE="${PW_SSA_MARINE:-SSAWindTide2026!}"
+TEST_PW_SSA_MARINE="${TEST_PW_SSA_MARINE:-SSAMarine2026!}"
+PW_CARNIVAL="${PW_CARNIVAL:-CarnivalWindTide2026!}"
+TEST_PW_CARNIVAL="${TEST_PW_CARNIVAL:-Carnival2026!}"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -297,6 +305,8 @@ TEAM_CHATHAM=$(ensure_team "Chatham")
 TEAM_SENDERO=$(ensure_team "Sendero")
 TEAM_OCEANCAY=$(ensure_team "MSC Cruises")
 TEAM_PASCAGOULA=$(ensure_team "Pascagoula")
+TEAM_SSA_MARINE=$(ensure_team "SSA Marine")
+TEAM_CARNIVAL=$(ensure_team "Carnival")
 
 log "=== Step 3: Create test user accounts ==="
 USER_PORTRICHEY=$(ensure_user "test_portrichey" "Test Portrichey" "test_portrichey@skywind.internal" "${TEST_PW_PORTRICHEY:-PortRichey2026!}")
@@ -312,6 +322,10 @@ USER_MSC=$(ensure_user "msccruises" "MSC Cruises" "msccruises@skywind.internal" 
 USER_TEST_MSC=$(ensure_user "test_msc" "Test MSC" "test_msc@skywind.internal" "$TEST_PW_MSC")
 USER_PASCAGOULA=$(ensure_user "pascagoula" "Pascagoula" "pascagoula@skywind.internal" "$PW_PASCAGOULA")
 USER_TEST_PASCAGOULA=$(ensure_user "test_pascagoula" "Test Pascagoula" "test_pascagoula@skywind.internal" "$TEST_PW_PASCAGOULA")
+USER_SSA_MARINE=$(ensure_user "ssa_marine" "SSA Marine" "ssa_marine@skywind.internal" "$PW_SSA_MARINE")
+USER_TEST_SSA_MARINE=$(ensure_user "test_ssa_marine" "Test SSA Marine" "test_ssa_marine@skywind.internal" "$TEST_PW_SSA_MARINE")
+USER_CARNIVAL=$(ensure_user "carnival" "Carnival" "carnival@skywind.internal" "$PW_CARNIVAL")
+USER_TEST_CARNIVAL=$(ensure_user "test_carnival" "Test Carnival" "test_carnival@skywind.internal" "$TEST_PW_CARNIVAL")
 
 log "=== Step 4: Assign users to teams ==="
 add_user_to_team "$TEAM_PORTRICHEY" "$USER_PORTRICHEY"
@@ -352,6 +366,18 @@ add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PASCAGOULA"
 add_user_to_team "$TEAM_PASCAGOULA" "$USER_TEST_PASCAGOULA"
 add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_PASCAGOULA"
 
+add_user_to_team "$TEAM_SSA_MARINE" "$USER_SSA_MARINE"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_SSA_MARINE"
+
+add_user_to_team "$TEAM_SSA_MARINE" "$USER_TEST_SSA_MARINE"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_SSA_MARINE"
+
+add_user_to_team "$TEAM_CARNIVAL" "$USER_CARNIVAL"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CARNIVAL"
+
+add_user_to_team "$TEAM_CARNIVAL" "$USER_TEST_CARNIVAL"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_CARNIVAL"
+
 log "=== Step 5: Set folder permissions ==="
 # Folder UIDs (must match dashboards.yaml)
 declare -A FOLDER_UIDS=(
@@ -365,6 +391,8 @@ declare -A FOLDER_UIDS=(
     ["sendero"]="cust-grp-sendero"
     ["oceancay"]="cust-grp-oceanCay"
     ["pascagoula"]="cust-grp-pascagoula"
+    ["ssamarine"]="cust-grp-ssamarine"
+    ["carnival"]="cust-grp-carnival"
 )
 
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
@@ -380,6 +408,8 @@ patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[sendero]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[ssamarine]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[carnival]}" "$INTERNAL_TEAM_ID" 1
 
 # Per-group teams: Viewer on their folder only
 patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$TEAM_PORTRICHEY" 1
@@ -389,6 +419,8 @@ patch_folder_team_permission "${FOLDER_UIDS[chatham]}" "$TEAM_CHATHAM" 1
 patch_folder_team_permission "${FOLDER_UIDS[sendero]}" "$TEAM_SENDERO" 1
 patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$TEAM_OCEANCAY" 1
 patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$TEAM_PASCAGOULA" 1
+patch_folder_team_permission "${FOLDER_UIDS[ssamarine]}" "$TEAM_SSA_MARINE" 1
+patch_folder_team_permission "${FOLDER_UIDS[carnival]}" "$TEAM_CARNIVAL" 1
 
 log "=== Step 6: Set home dashboards for test users ==="
 # Customer accounts: resolve primary dashboard from the group provisioning folder
@@ -407,6 +439,10 @@ set_user_home_dashboard "msccruises"      "$PW_MSC"              "$(resolve_home
 set_user_home_dashboard "test_msc"        "$TEST_PW_MSC"         "$(resolve_home_dashboard_uid grp_oceanCay)"
 set_user_home_dashboard "pascagoula"      "$PW_PASCAGOULA"       "$(resolve_home_dashboard_uid grp_pascagoula)"
 set_user_home_dashboard "test_pascagoula" "$TEST_PW_PASCAGOULA"  "$(resolve_home_dashboard_uid grp_pascagoula)"
+set_user_home_dashboard "ssa_marine"      "$PW_SSA_MARINE"       "$(resolve_home_dashboard_uid grp_ssamarine)"
+set_user_home_dashboard "test_ssa_marine" "$TEST_PW_SSA_MARINE"  "$(resolve_home_dashboard_uid grp_ssamarine)"
+set_user_home_dashboard "carnival"        "$PW_CARNIVAL"         "$(resolve_home_dashboard_uid grp_carnival)"
+set_user_home_dashboard "test_carnival"   "$TEST_PW_CARNIVAL"    "$(resolve_home_dashboard_uid grp_carnival)"
 
 log "=== Done ==="
 log ""
@@ -426,6 +462,10 @@ log "  msccruises         PW_MSC                 Ocean Cay + Customers"
 log "  test_msc           TEST_PW_MSC            Ocean Cay + Customers"
 log "  pascagoula         PW_PASCAGOULA          Pascagoula + Customers"
 log "  test_pascagoula    TEST_PW_PASCAGOULA     Pascagoula + Customers"
+log "  ssa_marine         PW_SSA_MARINE          SSA Marine + Customers"
+log "  test_ssa_marine    TEST_PW_SSA_MARINE     SSA Marine + Customers"
+log "  carnival           PW_CARNIVAL           Carnival + Customers"
+log "  test_carnival      TEST_PW_CARNIVAL      Carnival + Customers"
 log ""
 log "To change a test password, update the variable in .env and re-run this script."
 log "To add a new customer group:"

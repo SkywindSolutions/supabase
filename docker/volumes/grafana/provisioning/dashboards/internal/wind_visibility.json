@@ -2326,6 +2326,64 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind speed (upper bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [10, 10],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "windspdlb"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdlb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind speed (lower bound)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [10, 10],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -2357,7 +2415,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH legacy AS (\n  SELECT timestamp AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' <> 'wind_nbm'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n        AND windspdmean IS NOT NULL\n    )\n    AND $__timeFilter(timestamp)\n), nbm_run AS (\n  SELECT forecastdtutc AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n), obs_legacy AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' <> 'wind_nbm'\n    AND model = 'model_1'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), obs_nbm AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' = 'wind_nbm'\n    AND model = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), u AS (\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs FROM legacy\n  UNION ALL\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs FROM nbm_run\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs FROM obs_legacy\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs FROM obs_nbm\n)\nSELECT \"time\",\n       MAX(windspdmean) AS windspdmean,\n       MAX(windspd_nbm) AS windspd_nbm,\n       MAX(windspd_obs) AS windspd_obs\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
+          "rawSql": "WITH legacy AS (\n  SELECT timestamp AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm,\n         windspdlb,\n         windspdub\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' <> 'wind_nbm'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n        AND windspdmean IS NOT NULL\n    )\n    AND $__timeFilter(timestamp)\n), nbm_run AS (\n  SELECT forecastdtutc AS \"time\",\n         windspdmean,\n         windspd AS windspd_nbm,\n         windspdlb,\n         windspdub\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n), obs_legacy AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' <> 'wind_nbm'\n    AND model = 'model_1'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), obs_nbm AS (\n  SELECT forecastdtutc AS \"time\",\n         obs_wspd_kt AS windspd_obs\n  FROM forecast_data\n  WHERE obs_wspd_kt IS NOT NULL\n    AND fhr = 0\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND '$model' = 'wind_nbm'\n    AND model = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND $__timeFilter(forecastdtutc)\n), u AS (\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs, windspdlb, windspdub FROM legacy\n  UNION ALL\n  SELECT \"time\", windspdmean, windspd_nbm, NULL::float AS windspd_obs, windspdlb, windspdub FROM nbm_run\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs, NULL::float AS windspdlb, NULL::float AS windspdub FROM obs_legacy\n  UNION ALL\n  SELECT \"time\", NULL::float, NULL::float, windspd_obs, NULL::float AS windspdlb, NULL::float AS windspdub FROM obs_nbm\n)\nSELECT \"time\",\n       MAX(windspdmean) AS windspdmean,\n       MAX(windspd_nbm) AS windspd_nbm,\n       MAX(windspd_obs) AS windspd_obs,\n       MAX(windspdlb) AS windspdlb,\n       MAX(windspdub) AS windspdub\nFROM u\nGROUP BY \"time\"\nORDER BY \"time\"",
           "refId": "A"
         }
       ],

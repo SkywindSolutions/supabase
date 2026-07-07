@@ -439,7 +439,39 @@
           },
           "unit": "velocityknot"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Forecast (mean)" },
+            "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } } ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Forecast (NBM)" },
+            "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } } ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Observed" },
+            "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } } ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Wind speed (upper bound)" },
+            "properties": [
+              { "id": "displayName", "value": "Wind speed (upper bound)" },
+              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "Wind speed (lower bound)" },
+              { "id": "custom.fillOpacity", "value": 10 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Wind speed (lower bound)" },
+            "properties": [
+              { "id": "displayName", "value": "Wind speed (lower bound)" },
+              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillOpacity", "value": 0 }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -459,7 +491,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean AS \"Forecast (mean)\",\n         f.windspd     AS \"Forecast (NBM)\",\n         o.obs_wspd_kt AS \"Observed\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\"\nFROM matched\nWHERE \"Observed\" IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\nORDER BY \"time\""
+          "rawSql": "WITH matched AS (\n  SELECT f.\"timestamp\" AS \"time\",\n         CASE\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '6 hours' THEN '0-6h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '12 hours' THEN '6-12h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '24 hours' THEN '12-24h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '48 hours' THEN '24-48h'\n           WHEN f.\"timestamp\" - f.startdt <= INTERVAL '72 hours' THEN '48-72h'\n           ELSE '72h+'\n         END AS lead_bucket,\n         f.windspdmean AS \"Forecast (mean)\",\n         f.windspd     AS \"Forecast (NBM)\",\n         o.obs_wspd_kt AS \"Observed\",\n         f.windspdlb   AS \"Wind speed (lower bound)\",\n         f.windspdub   AS \"Wind speed (upper bound)\"\n  FROM forecast_data f\n  LEFT JOIN LATERAL (\n    SELECT o.obs_wspd_kt\n    FROM forecast_data o\n    WHERE o.group_id = f.group_id\n      AND o.locname = f.locname\n      AND o.\"timestamp\" = f.\"timestamp\"\n      AND COALESCE(o.height_m, 20) = COALESCE(f.height_m, 20)\n      AND o.fhr = 0\n      AND o.model IN (f.model, 'model_1')\n      AND o.obs_wspd_kt IS NOT NULL\n    ORDER BY CASE WHEN o.model = f.model THEN 0 ELSE 1 END\n    LIMIT 1\n  ) o ON true\n  WHERE f.windspdmean IS NOT NULL\n    AND f.startdt IS NOT NULL\n    AND f.group_id = '$group'\n    AND f.locname = '$location'\n    AND f.model = '$model'\n    AND COALESCE(f.height_m, 20) = ${height_m:raw}\n    AND $__timeFilter(f.\"timestamp\")\n)\nSELECT \"time\", \"Forecast (mean)\", \"Forecast (NBM)\", \"Observed\", \"Wind speed (lower bound)\", \"Wind speed (upper bound)\"\nFROM matched\nWHERE \"Observed\" IS NOT NULL\n  AND lead_bucket IN ($lead_bucket)\nORDER BY \"time\""
         }
       ]
     },

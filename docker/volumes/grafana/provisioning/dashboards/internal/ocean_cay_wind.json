@@ -1101,11 +1101,30 @@
                 "value": "degree"
               },
               {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              },
+              {
                 "id": "custom.hideFrom",
                 "value": {
                   "legend": true,
                   "tooltip": false,
-                  "viz": true
+                  "viz": false
                 }
               }
             ]
