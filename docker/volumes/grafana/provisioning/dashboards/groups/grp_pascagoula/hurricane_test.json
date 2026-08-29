@@ -15,13 +15,52 @@
       }
     ]
   },
-  "description": "Wind & Visibility forecast data for Pascagoula Forecasts. Customer-facing dashboard. No observation data.",
-  "editable": false,
+  "description": "TEST DASHBOARD \u2014 Hurricane / tropical cyclone threat evaluation. Based on the Pascagoula wind & visibility dashboard. Do not modify for customer use.",
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Official National Hurricane Center tropical cyclone information. Panel is dynamically added/removed based on threat status.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 200,
+      "options": {
+        "content": "<h3 style=\"margin-bottom:8px;\"><img src=\"https://www.nhc.noaa.gov/gifs/xml_logo_nhc.gif\" alt=\"NHC\" style=\"height:24px;vertical-align:middle;margin-right:8px;\">National Hurricane Center &mdash; Tropical Cyclone Information</h3><div style=\"display:flex;flex-wrap:wrap;gap:16px;\"><div style=\"flex:1;min-width:300px;\"><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:4px 8px;font-weight:bold;\">Storm:</td><td style=\"padding:4px 8px;\">Bertha</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Classification:</td><td style=\"padding:4px 8px;\">Tropical Storm</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Location:</td><td style=\"padding:4px 8px;\">29.4&deg;N 87.7&deg;W</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Max Winds:</td><td style=\"padding:4px 8px;\">60 mph</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Movement:</td><td style=\"padding:4px 8px;\">W at 6 mph</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Pressure:</td><td style=\"padding:4px 8px;\">995 mb</td></tr><tr><td style=\"padding:4px 8px;font-weight:bold;\">Advisory:</td><td style=\"padding:4px 8px;\">-- (2026-07-22 02:41 UTC)</td></tr></table><p style=\"margin-top:12px;\"><a href=\"https://www.nhc.noaa.gov/text/refresh/MIATCPAT2+shtml/220241.shtml\" target=\"_blank\" rel=\"noopener\">View Official NHC Public Advisory &rarr;</a></p></div><div style=\"flex:2;min-width:400px;text-align:center;\"><a href=\"https://www.nhc.noaa.gov/text/refresh/MIATCPAT2+shtml/220241.shtml\" target=\"_blank\" rel=\"noopener\"><img src=\"https://www.nhc.noaa.gov/storm_graphics/AT02/refresh/AL022026_5day_cone+png/220241_5day_cone.png\" alt=\"NHC Forecast Cone &mdash; Bertha\" style=\"max-width:100%;height:auto;border:1px solid #ccc;border-radius:4px;\"></a><p style=\"font-size:0.85em;color:#888;margin-top:4px;\">Official NHC Forecast Cone &mdash; <a href=\"https://www.nhc.noaa.gov/text/refresh/MIATCPAT2+shtml/220241.shtml\" target=\"_blank\" rel=\"noopener\">View interactive version</a></p></div></div><hr style=\"margin:16px 0 4px 0;\">",
+        "mode": "html"
+      },
+      "pluginVersion": "",
+      "title": "Tropical Cyclone Information",
+      "type": "text"
+    },
     {
       "datasource": {
         "type": "postgres",
@@ -201,7 +240,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 16
       },
       "id": 1,
       "options": {
@@ -268,7 +307,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 18
+        "y": 34
       },
       "id": 2,
       "options": {
@@ -381,7 +420,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 25
       },
       "id": 3,
       "options": {
@@ -499,7 +538,7 @@
         "h": 7,
         "w": 18,
         "x": 6,
-        "y": 18
+        "y": 34
       },
       "id": 4,
       "options": {
@@ -536,7 +575,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 41
       },
       "id": 900,
       "panels": [],
@@ -700,7 +739,7 @@
         "h": 9,
         "w": 18,
         "x": 0,
-        "y": 26
+        "y": 42
       },
       "id": 5,
       "options": {
@@ -760,7 +799,7 @@
         "h": 2,
         "w": 6,
         "x": 18,
-        "y": 26
+        "y": 42
       },
       "id": 100,
       "options": {
@@ -845,7 +884,7 @@
         "h": 3,
         "w": 3,
         "x": 18,
-        "y": 28
+        "y": 44
       },
       "id": 6,
       "options": {
@@ -939,7 +978,7 @@
         "h": 3,
         "w": 3,
         "x": 18,
-        "y": 31
+        "y": 47
       },
       "id": 101,
       "options": {
@@ -1025,7 +1064,7 @@
         "h": 3,
         "w": 3,
         "x": 21,
-        "y": 28
+        "y": 44
       },
       "id": 102,
       "options": {
@@ -1151,7 +1190,7 @@
         "h": 3,
         "w": 3,
         "x": 21,
-        "y": 31
+        "y": 47
       },
       "id": 103,
       "options": {
@@ -1217,7 +1256,7 @@
         "h": 3,
         "w": 8,
         "x": 0,
-        "y": 35
+        "y": 51
       },
       "id": 104,
       "options": {
@@ -1283,7 +1322,7 @@
         "h": 3,
         "w": 8,
         "x": 8,
-        "y": 35
+        "y": 51
       },
       "id": 105,
       "options": {
@@ -1349,7 +1388,7 @@
         "h": 3,
         "w": 8,
         "x": 16,
-        "y": 35
+        "y": 51
       },
       "id": 106,
       "options": {
@@ -1525,7 +1564,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 54
       },
       "id": 7,
       "options": {
@@ -1643,7 +1682,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 64
       },
       "id": 8,
       "options": {
@@ -1681,7 +1720,10 @@
     "customer",
     "wind",
     "visibility",
-    "combined"
+    "combined",
+    "test",
+    "hurricane",
+    "tropical-cyclone"
   ],
   "templating": {
     "list": [
@@ -1774,8 +1816,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Pascagoula Forecasts \u2014 Wind & Visibility Forecast",
-  "uid": "wind_visibility-grp_pascagoula",
-  "version": 317,
+  "title": "Pascagoula Forecasts \u2014 Hurricane Test Dashboard",
+  "uid": "hurricane_test-grp_pascagoula",
+  "version": 9,
   "weekStart": ""
 }

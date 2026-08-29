@@ -54,6 +54,30 @@
 		reverse_proxy alerts:8090
 	}
 
+	# Tile server — probability field GeoJSON for Grafana map overlays.
+	# The Grafana Geomap geojson layer fetches directly from the browser, so
+	# this route must be publicly reachable (no auth required — data is
+	# aggregate probability fields, not customer PII).
+	handle /geojson/* {
+		encode gzip
+		reverse_proxy tile-server:8080
+	}
+
+	# -----------------------------------------------------------------------
+	# Public dashboard access logging
+	# Logs all requests to public dashboard routes in structured JSON format
+	# for downstream analytics (parsed by sync_public_dashboard_activity.py).
+	# -----------------------------------------------------------------------
+	@public_dashboards path /public-dashboards/*
+	log @public_dashboards {
+		output file /var/log/caddy/public-dashboards.log {
+			roll_size 10mb
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
 	# Friendly alias for the Port Richey public dashboard.
 	# Grafana's SPA extracts the access token from the browser URL path and
 	# uses it in follow-up API calls (/api/public/dashboards/<token>/...).
@@ -61,6 +85,10 @@
 	# and all subsequent API calls so Grafana always sees the real token.
 	@port_richey path_regexp pr (/public-dashboards|/api/public/dashboards)/Port-Richey(.*)
 	rewrite @port_richey {re.pr.1}/27539075035b4a64a0a9f2bebfcbd64d{re.pr.2}
+
+	# Friendly alias for the public hail forecast demo dashboard.
+	@hail_forecast path_regexp hf (/public-dashboards|/api/public/dashboards)/Hail-Forecast(.*)
+	rewrite @hail_forecast {re.hf.1}/dcab3baeba8c468fa28339212f51818b{re.hf.2}
 
 	# Default: Grafana at the root — Grafana manages its own login page.
 	handle {

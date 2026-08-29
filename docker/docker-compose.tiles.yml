@@ -1,0 +1,49 @@
+# Tile server overlay
+#
+# Start alongside the main Supabase + Caddy + Grafana stack:
+#
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.caddy.yml \
+#     -f docker-compose.grafana.yml \
+#     -f docker-compose.tiles.yml \
+#     up -d --build tile-server
+#
+# Then reload Caddy to pick up the new /geojson/* route:
+#
+#   docker exec supabase-caddy \
+#     caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+#
+# Required .env variables (shared with the main stack):
+#   POSTGRES_PASSWORD   — Supabase DB password
+#   POSTGRES_HOST       — defaults to "db" (Docker service name)
+#   POSTGRES_PORT       — defaults to 5432
+#   POSTGRES_DB         — defaults to "postgres"
+
+name: supabase
+
+services:
+  tile-server:
+    container_name: supabase-tile-server
+    build:
+      context: ./tile_server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST:     ${POSTGRES_HOST:-db}
+      DB_PORT:     ${POSTGRES_PORT:-5432}
+      DB_NAME:     ${POSTGRES_DB:-postgres}
+      DB_USER:     postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CACHE_TTL_SEC: "300"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""
+      interval: 15s
+      timeout:  5s
+      retries:  3
+      start_period: 20s

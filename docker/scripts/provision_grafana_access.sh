@@ -87,6 +87,14 @@ PW_SSA_MARINE=${PW_SSA_MARINE:-$(_get_env PW_SSA_MARINE)}
 TEST_PW_SSA_MARINE=${TEST_PW_SSA_MARINE:-$(_get_env TEST_PW_SSA_MARINE)}
 PW_CARNIVAL=${PW_CARNIVAL:-$(_get_env PW_CARNIVAL)}
 TEST_PW_CARNIVAL=${TEST_PW_CARNIVAL:-$(_get_env TEST_PW_CARNIVAL)}
+PW_PENOBSCOT=${PW_PENOBSCOT:-$(_get_env PW_PENOBSCOT)}
+TEST_PW_PENOBSCOT=${TEST_PW_PENOBSCOT:-$(_get_env TEST_PW_PENOBSCOT)}
+PW_HERTZ=${PW_HERTZ:-$(_get_env PW_HERTZ)}
+TEST_PW_HERTZ=${TEST_PW_HERTZ:-$(_get_env TEST_PW_HERTZ)}
+PW_GATOR=${PW_GATOR:-$(_get_env PW_GATOR)}
+TEST_PW_GATOR=${TEST_PW_GATOR:-$(_get_env TEST_PW_GATOR)}
+PW_MANSON=${PW_MANSON:-$(_get_env PW_MANSON)}
+TEST_PW_MANSON=${TEST_PW_MANSON:-$(_get_env TEST_PW_MANSON)}
 
 : "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER not set in .env}"
 : "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD not set in .env}"
@@ -120,6 +128,14 @@ PW_SSA_MARINE="${PW_SSA_MARINE:-SSAWindTide2026!}"
 TEST_PW_SSA_MARINE="${TEST_PW_SSA_MARINE:-SSAMarine2026!}"
 PW_CARNIVAL="${PW_CARNIVAL:-CarnivalWindTide2026!}"
 TEST_PW_CARNIVAL="${TEST_PW_CARNIVAL:-Carnival2026!}"
+PW_PENOBSCOT="${PW_PENOBSCOT:-PenobscotTideWind2026!}"
+TEST_PW_PENOBSCOT="${TEST_PW_PENOBSCOT:-Penobscot2026!}"
+PW_HERTZ="${PW_HERTZ:-HertzWindTide2026!}"
+TEST_PW_HERTZ="${TEST_PW_HERTZ:-Hertz2026!}"
+PW_GATOR="${PW_GATOR:-GatorWindTide2026!}"
+TEST_PW_GATOR="${TEST_PW_GATOR:-Gator2026!}"
+PW_MANSON="${PW_MANSON:-MansonWindTide2026!}"
+TEST_PW_MANSON="${TEST_PW_MANSON:-Manson2026!}"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -230,7 +246,14 @@ set_folder_team_permission() {
 resolve_home_dashboard_uid() {
     local group_id="$1"
     local groups_dir="${DOCKER_DIR}/volumes/grafana/provisioning/dashboards/groups/${group_id}"
-    for dtype in tide_wind wind_visibility visibility wind tide; do
+    # Priority 1: A dedicated home dashboard (provides a landing page with
+    # navigation links to multiple dashboards within the group).
+    if [[ -f "${groups_dir}/home.json" ]]; then
+        echo "home-${group_id}"
+        return
+    fi
+    # Priority 2: Combined dashboards, then single-product dashboards.
+    for dtype in wind_tide tide_wind wind_visibility visibility wind tide; do
         if [[ -f "${groups_dir}/${dtype}.json" ]]; then
             echo "${dtype}-${group_id}"
             return
@@ -307,6 +330,10 @@ TEAM_OCEANCAY=$(ensure_team "MSC Cruises")
 TEAM_PASCAGOULA=$(ensure_team "Pascagoula")
 TEAM_SSA_MARINE=$(ensure_team "SSA Marine")
 TEAM_CARNIVAL=$(ensure_team "Carnival")
+TEAM_PENOBSCOT=$(ensure_team "Penobscot")
+TEAM_HERTZ=$(ensure_team "Hertz")
+TEAM_GATOR=$(ensure_team "Gator")
+TEAM_MANSON=$(ensure_team "Manson")
 
 log "=== Step 3: Create test user accounts ==="
 USER_PORTRICHEY=$(ensure_user "test_portrichey" "Test Portrichey" "test_portrichey@skywind.internal" "${TEST_PW_PORTRICHEY:-PortRichey2026!}")
@@ -326,6 +353,14 @@ USER_SSA_MARINE=$(ensure_user "ssa_marine" "SSA Marine" "ssa_marine@skywind.inte
 USER_TEST_SSA_MARINE=$(ensure_user "test_ssa_marine" "Test SSA Marine" "test_ssa_marine@skywind.internal" "$TEST_PW_SSA_MARINE")
 USER_CARNIVAL=$(ensure_user "carnival" "Carnival" "carnival@skywind.internal" "$PW_CARNIVAL")
 USER_TEST_CARNIVAL=$(ensure_user "test_carnival" "Test Carnival" "test_carnival@skywind.internal" "$TEST_PW_CARNIVAL")
+USER_PENOBSCOT=$(ensure_user "penobscot" "Penobscot" "penobscot@skywind.internal" "$PW_PENOBSCOT")
+USER_TEST_PENOBSCOT=$(ensure_user "test_penobscot" "Test Penobscot" "test_penobscot@skywind.internal" "$TEST_PW_PENOBSCOT")
+USER_HERTZ=$(ensure_user "hertz" "Hertz" "hertz@skywind.internal" "$PW_HERTZ")
+USER_TEST_HERTZ=$(ensure_user "test_hertz" "Test Hertz" "test_hertz@skywind.internal" "$TEST_PW_HERTZ")
+USER_GATOR=$(ensure_user "gatorDredging" "Gator Dredging" "gatorDredging@skywind.internal" "$PW_GATOR")
+USER_TEST_GATOR=$(ensure_user "test_gator" "Test Gator" "test_gator@skywind.internal" "$TEST_PW_GATOR")
+USER_MANSON=$(ensure_user "manson" "Manson Construction" "manson@skywind.internal" "$PW_MANSON")
+USER_TEST_MANSON=$(ensure_user "test_manson" "Test Manson" "test_manson@skywind.internal" "$TEST_PW_MANSON")
 
 log "=== Step 4: Assign users to teams ==="
 add_user_to_team "$TEAM_PORTRICHEY" "$USER_PORTRICHEY"
@@ -378,6 +413,30 @@ add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_CARNIVAL"
 add_user_to_team "$TEAM_CARNIVAL" "$USER_TEST_CARNIVAL"
 add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_CARNIVAL"
 
+add_user_to_team "$TEAM_PENOBSCOT" "$USER_PENOBSCOT"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_PENOBSCOT"
+
+add_user_to_team "$TEAM_PENOBSCOT" "$USER_TEST_PENOBSCOT"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_PENOBSCOT"
+
+add_user_to_team "$TEAM_HERTZ" "$USER_HERTZ"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_HERTZ"
+
+add_user_to_team "$TEAM_HERTZ" "$USER_TEST_HERTZ"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_HERTZ"
+
+add_user_to_team "$TEAM_GATOR" "$USER_GATOR"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_GATOR"
+
+add_user_to_team "$TEAM_GATOR" "$USER_TEST_GATOR"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_GATOR"
+
+add_user_to_team "$TEAM_MANSON" "$USER_MANSON"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_MANSON"
+
+add_user_to_team "$TEAM_MANSON" "$USER_TEST_MANSON"
+add_user_to_team "$CUSTOMERS_TEAM_ID" "$USER_TEST_MANSON"
+
 log "=== Step 5: Set folder permissions ==="
 # Folder UIDs (must match dashboards.yaml)
 declare -A FOLDER_UIDS=(
@@ -393,6 +452,10 @@ declare -A FOLDER_UIDS=(
     ["pascagoula"]="cust-grp-pascagoula"
     ["ssamarine"]="cust-grp-ssamarine"
     ["carnival"]="cust-grp-carnival"
+    ["penobscot"]="cust-grp-penobscot"
+    ["hertz"]="cust-grp-hertz"
+    ["gator"]="cust-grp-gator"
+    ["manson"]="cust-grp-manson"
 )
 
 # Internal team: Viewer on Customer Dashboards and Internal Dashboards
@@ -410,6 +473,10 @@ patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[ssamarine]}" "$INTERNAL_TEAM_ID" 1
 patch_folder_team_permission "${FOLDER_UIDS[carnival]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[penobscot]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[hertz]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[gator]}" "$INTERNAL_TEAM_ID" 1
+patch_folder_team_permission "${FOLDER_UIDS[manson]}" "$INTERNAL_TEAM_ID" 1
 
 # Per-group teams: Viewer on their folder only
 patch_folder_team_permission "${FOLDER_UIDS[portrichey]}" "$TEAM_PORTRICHEY" 1
@@ -421,6 +488,10 @@ patch_folder_team_permission "${FOLDER_UIDS[oceancay]}" "$TEAM_OCEANCAY" 1
 patch_folder_team_permission "${FOLDER_UIDS[pascagoula]}" "$TEAM_PASCAGOULA" 1
 patch_folder_team_permission "${FOLDER_UIDS[ssamarine]}" "$TEAM_SSA_MARINE" 1
 patch_folder_team_permission "${FOLDER_UIDS[carnival]}" "$TEAM_CARNIVAL" 1
+patch_folder_team_permission "${FOLDER_UIDS[penobscot]}" "$TEAM_PENOBSCOT" 1
+patch_folder_team_permission "${FOLDER_UIDS[hertz]}" "$TEAM_HERTZ" 1
+patch_folder_team_permission "${FOLDER_UIDS[gator]}" "$TEAM_GATOR" 1
+patch_folder_team_permission "${FOLDER_UIDS[manson]}" "$TEAM_MANSON" 1
 
 log "=== Step 6: Set home dashboards for test users ==="
 # Customer accounts: resolve primary dashboard from the group provisioning folder
@@ -443,6 +514,14 @@ set_user_home_dashboard "ssa_marine"      "$PW_SSA_MARINE"       "$(resolve_home
 set_user_home_dashboard "test_ssa_marine" "$TEST_PW_SSA_MARINE"  "$(resolve_home_dashboard_uid grp_ssamarine)"
 set_user_home_dashboard "carnival"        "$PW_CARNIVAL"         "$(resolve_home_dashboard_uid grp_carnival)"
 set_user_home_dashboard "test_carnival"   "$TEST_PW_CARNIVAL"    "$(resolve_home_dashboard_uid grp_carnival)"
+set_user_home_dashboard "penobscot"         "$PW_PENOBSCOT"         "$(resolve_home_dashboard_uid grp_penobscot)"
+set_user_home_dashboard "test_penobscot"    "$TEST_PW_PENOBSCOT"    "$(resolve_home_dashboard_uid grp_penobscot)"
+set_user_home_dashboard "hertz"             "$PW_HERTZ"             "$(resolve_home_dashboard_uid grp_hertz)"
+set_user_home_dashboard "test_hertz"        "$TEST_PW_HERTZ"        "$(resolve_home_dashboard_uid grp_hertz)"
+set_user_home_dashboard "gatorDredging"     "$PW_GATOR"             "$(resolve_home_dashboard_uid grp_gator)"
+set_user_home_dashboard "test_gator"        "$TEST_PW_GATOR"        "$(resolve_home_dashboard_uid grp_gator)"
+set_user_home_dashboard "manson"            "$PW_MANSON"            "$(resolve_home_dashboard_uid grp_manson)"
+set_user_home_dashboard "test_manson"       "$TEST_PW_MANSON"       "$(resolve_home_dashboard_uid grp_manson)"
 
 log "=== Done ==="
 log ""
@@ -466,6 +545,14 @@ log "  ssa_marine         PW_SSA_MARINE          SSA Marine + Customers"
 log "  test_ssa_marine    TEST_PW_SSA_MARINE     SSA Marine + Customers"
 log "  carnival           PW_CARNIVAL           Carnival + Customers"
 log "  test_carnival      TEST_PW_CARNIVAL      Carnival + Customers"
+log "  penobscot          PW_PENOBSCOT          Penobscot + Customers"
+log "  test_penobscot     TEST_PW_PENOBSCOT     Penobscot + Customers"
+log "  hertz              PW_HERTZ              Hertz + Customers"
+log "  test_hertz         TEST_PW_HERTZ         Hertz + Customers"
+log "  gatorDredging       PW_GATOR              Gator + Customers"
+log "  test_gator         TEST_PW_GATOR         Gator + Customers"
+log "  manson             PW_MANSON             Manson + Customers"
+log "  test_manson        TEST_PW_MANSON        Manson + Customers"
 log ""
 log "To change a test password, update the variable in .env and re-run this script."
 log "To add a new customer group:"

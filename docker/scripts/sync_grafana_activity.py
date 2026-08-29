@@ -182,10 +182,56 @@ def parse_grafana_timestamp(ts: str) -> datetime | None:
     return dt
 
 
+def sync_account_status(cur, users: list[dict]) -> int:
+    """
+    Reconcile public.customer_account_status.is_active against each user's
+    Grafana isDisabled flag.  The Customer Access Statistics dashboard
+    filters on this table, so account enable/disable state stays accurate
+    even when the deactivate/reactivate script is bypassed (e.g. manual
+    disable in the Grafana UI).
+
+    Only customer logins are tracked (NOT internal admin/test_* accounts).
+    Returns the number of status rows updated.
+    """
+    INTERNAL_LOGINS = {GRAFANA_ADMIN_USER, "dan", "matt"}
+    updated = 0
+
+    for user in users:
+        login = user.get("login", "")
+        if not login:
+            continue
+        # Skip admin/internal accounts; the dashboard already excludes these.
+        if login.startswith("test_") or login in INTERNAL_LOGINS:
+            continue
+        is_active = not bool(user.get("isDisabled", False))
+        try:
+            cur.execute(
+                """
+                INSERT INTO public.customer_account_status (grafana_login, is_active)
+                VALUES (%s, %s)
+                ON CONFLICT (grafana_login) DO UPDATE
+                    SET is_active = EXCLUDED.is_active, updated_at = NOW()
+                """,
+                (login, is_active),
+            )
+            if cur.rowcount > 0:
+                updated += 1
+        except psycopg.Error:
+            # Table may not exist yet on old DBs; don't break the sync.
+            log.warning(
+                "Could not update customer_account_status for %s "
+                "(run db/migrations/20260822000002_create_customer_account_status.sql)",
+                login,
+            )
+
+    return updated
+
+
 def sync_activity() -> int:
     """
     Compare Grafana user lastSeenAt with the most recent recorded value
     in grafana_access_log.  Insert rows for users whose activity changed.
+    Also reconciles customer_account_status.is_active.
     Returns the number of new rows inserted.
     """
     users = fetch_grafana_users()
@@ -199,6 +245,11 @@ def sync_activity() -> int:
 
     with psycopg.connect(conninfo) as conn:
         with conn.cursor() as cur:
+            # Reconcile account active/inactive state first (dashboard filter).
+            status_updated = sync_account_status(cur, users)
+            if status_updated:
+                log.info("Synced %d customer_account_status row(s)", status_updated)
+
             for user in users:
                 login = user.get("login", "")
                 user_id = user.get("id", 0)

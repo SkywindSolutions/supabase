@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Tide forecast — forecast fields only. No observation or astronomical reference data. Customer-facing.",
+  "description": "Tide forecast \u2014 forecast fields only. No observation or astronomical reference data. Customer-facing.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -416,7 +416,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Predicted Value\",\n    datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Predicted Value\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
+          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM forecast_data\n  WHERE\n    tidemean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean + (next_tidemean - tidemean) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Predicted Value\",\n    tide_datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Predicted Value\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
           "refId": "A"
         }
       ],
@@ -618,13 +618,13 @@
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT datum FROM forecast_data WHERE locname = '$location' AND datum IS NOT NULL LIMIT 1",
+        "definition": "SELECT DISTINCT tide_datum FROM public.v_forecast_data_display WHERE locname = '$location' AND tide_datum IS NOT NULL LIMIT 1",
         "hide": 2,
         "includeAll": false,
         "multi": false,
         "name": "datum",
         "options": [],
-        "query": "SELECT DISTINCT datum FROM forecast_data WHERE locname = '$location' AND datum IS NOT NULL LIMIT 1",
+        "query": "SELECT DISTINCT tide_datum FROM public.v_forecast_data_display WHERE locname = '$location' AND tide_datum IS NOT NULL LIMIT 1",
         "refresh": 1,
         "regex": "",
         "sort": 0,

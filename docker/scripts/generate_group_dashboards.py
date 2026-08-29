@@ -57,16 +57,20 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 GROUP_DISPLAY_NAMES: dict[str, str] = {
     "grp_mobilebay":     "Mobile Bay Forecasts",
-    "grp_pascagoula":     "Pascagoula Forecasts",
-    "grp_portrichey":   "Port Richey Forecasts",
-    "grp_clearwater":   "Clearwater Forecasts",
+    "grp_pascagoula":    "Pascagoula Forecasts",
+    "grp_portrichey":    "Port Richey Forecasts",
+    "grp_clearwater":    "Clearwater Forecasts",
     "grp_corpuschristi": "Corpus Christi Forecasts",
-    "grp_chatham":      "Chatham Forecasts",
-    "grp_oceanCay":     "Ocean Cay Forecasts",
-    "grp_sendero":      "Sendero Forecasts",
-    "grp_ssamarine":    "SSA Marine Forecasts",
-    "grp_carnival":     "Carnival Forecasts",
-    "grp_lakeWorth":    "Lake Worth Forecasts",
+    "grp_chatham":       "Chatham Forecasts",
+    "grp_oceanCay":      "Ocean Cay Forecasts",
+    "grp_sendero":       "Sendero Forecasts",
+    "grp_ssamarine":     "SSA Marine Forecasts",
+    "grp_carnival":      "Carnival Forecasts",
+    "grp_lakeWorth":     "Lake Worth Forecasts",
+    "grp_penobscot":     "Penobscot Forecasts",
+    "grp_hertz":         "Hertz Forecasts",
+    "grp_gator":         "Gator Forecasts",
+    "grp_manson":        "Manson Forecasts",
 }
 
 # Data-type → columns checked to detect whether a group has that data.
@@ -97,15 +101,17 @@ COMBINED_DASHBOARD_GROUPS: dict[str, tuple[str, ...]] = {
     "grp_pascagoula": ("wind_visibility",),
     "grp_ssamarine": ("tide_wind",),
     "grp_carnival": ("tide_wind",),
+    "grp_penobscot": ("tide_wind",),
 }
 
 TIDE_GRAFANA_UNITS: dict[str, str] = {
     "ft": "lengthft",
-    "m": "lengthm",
+    "m": "suffix: m",
 }
 
 LEGACY_WIND_HEIGHT_M: dict[str, int] = {
     "grp_ssamarine": 10,
+    "grp_penobscot": 10,
 }
 
 # Per-group, per-dashboard default model mapping.
@@ -383,6 +389,347 @@ def sanitise_folder_uid(group_id: str) -> str:
     return f"cust-{uid}"[:40]
 
 
+def load_customer_metadata(conn_str: str, group_id: str) -> dict:
+    """Load customer profile metadata from the database.
+
+    Returns the ``metadata`` JSONB column from ``customer_groups`` as a
+    Python dict, or an empty dict when the group has no profile or the DB
+    is unavailable.
+    """
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return {}
+
+    sql = "SELECT metadata::text FROM public.customer_groups WHERE group_id = %s;"
+
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return json.loads(row[0])
+                return {}
+    except Exception as exc:
+        log.warning("Failed to load customer metadata for %s: %s", group_id, exc)
+        return {}
+
+
+def _patch_location_variable_display_names(
+    dashboard: dict,
+    group_id: str,
+) -> None:
+    """Modify the ``location`` template-variable query to show display names.
+
+    When the customer's ``customer_groups.metadata`` contains a
+    ``display_name_overrides`` map, the location dropdown shows the
+    customer-facing name while ``$location`` still resolves to the real
+    ``locname`` value so that existing SQL queries continue to work.
+    """
+    for var in dashboard.get("templating", {}).get("list", []):
+        if var.get("name") != "location":
+            continue
+        for field in ("query", "definition"):
+            query = var.get(field, "")
+            if not query:
+                continue
+
+            # Step 1: Prefix unqualified column refs with f.
+            qualified = re.sub(
+                r"\b(group_id|locname|model)\b",
+                r"f.\1",
+                query,
+            )
+            qualified = re.sub(
+                r"\b(tidemean|windspdmean|vismean|nbmvis)\s+IS\s+NOT\s+NULL",
+                r"f.\1 IS NOT NULL",
+                qualified,
+            )
+
+            # Step 2: Transform SELECT DISTINCT to use display-name overrides.
+            # Use __value / __text column aliases so Grafana unambiguously
+            # knows which column is the value (real locname) and which is the
+            # display text (customer-facing name).
+            new_query = re.sub(
+                r"SELECT\s+DISTINCT\s+f\.locname\s+FROM\s+forecast_data\s*",
+                "SELECT DISTINCT f.locname AS __value, "
+                "COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text "
+                "FROM forecast_data f "
+                "LEFT JOIN public.customer_groups g "
+                "ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' ",
+                qualified,
+                count=1,
+            )
+            new_query = new_query.replace("ORDER BY 1", "ORDER BY 2")
+            var[field] = new_query
+
+        # Preserve an already-set default location so the dashboard renders
+        # immediately; only remove stale options.
+        var.pop("options", None)
+
+
+def _patch_sql_display_names(
+    panels: list,
+    group_id: str,
+) -> None:
+    """Replace ``locname AS "<Title>"`` in panel SQL with display-name lookup.
+
+    Handles three patterns:
+    1. Simple queries (direct ``FROM forecast_data``)
+    2. Subquery patterns (``FROM (SELECT DISTINCT ON ...) sub``)
+    3. CTE patterns (``WITH ...``)
+
+    For each, the ``locname`` column displayed to the user is wrapped with
+    ``COALESCE(g.metadata->'display_name_overrides'->>..., ...)`` so the
+    customer-facing name appears instead of the stored locname.
+    """
+    for panel in panels:
+        for target in panel.get("targets", []):
+            raw_sql = target.get("rawSql", "")
+            if not raw_sql:
+                continue
+
+            # Only patch queries that display locname as a column
+            if 'locname AS "' not in raw_sql and "locname AS '" not in raw_sql:
+                continue
+
+            has_cte = bool(re.search(r"^\s*WITH\s+", raw_sql, re.IGNORECASE | re.MULTILINE))
+            has_subquery = raw_sql.count("SELECT") > 1 or raw_sql.count("FROM") > 1
+
+            if has_cte:
+                result = _patch_cte_display_names(raw_sql)
+            elif has_subquery:
+                result = _patch_subquery_display_names(raw_sql)
+            else:
+                result = _patch_simple_display_names(raw_sql)
+
+            if result != raw_sql:
+                target["rawSql"] = result
+
+        if "panels" in panel:
+            _patch_sql_display_names(panel["panels"], group_id)
+
+
+def _patch_simple_display_names(sql: str) -> str:
+    """Patch a simple ``SELECT locname AS "Location" FROM forecast_data ...`` query."""
+    # Prefix unqualified column refs with f.
+    prefixed = re.sub(
+        r"\b(group_id|locname|model|datum|timestamp|startdt|forecastdtutc|height_m)\b",
+        r"f.\1",
+        sql,
+    )
+    prefixed = re.sub(
+        r"\b(tidemean|windspdmean|vismean|nbmvis|tideub|tidelb)\s+IS\s+NOT\s+NULL",
+        r"f.\1 IS NOT NULL",
+        prefixed,
+    )
+
+    result = re.sub(
+        r'\bf\.locname\s+AS\s+"(Location)"',
+        r"COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS "
+        r'"\1"',
+        prefixed,
+    )
+
+    if "customer_groups" not in result:
+        result = re.sub(
+            r"(FROM\s+(public\.)?forecast_data\b)",
+            r"\1 f\n"
+            r"LEFT JOIN public.customer_groups g "
+            r"ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides'",
+            result,
+            count=1,
+        )
+    return result
+
+
+def _patch_subquery_display_names(sql: str) -> str:
+    """Patch a subquery pattern like SELECT locname AS Location FROM (SELECT ...) sub."""
+    # Extract the hardcoded group_id from the SQL
+    group_id_match = re.search(r"group_id\s*=\s*'([^']+)'", sql)
+    group_id = group_id_match.group(1) if group_id_match else ""
+
+    result = sql
+    result = re.sub(
+        r'\blocname\s+AS\s+"(Location)"',
+        r"COALESCE(g.metadata->'display_name_overrides'->>sub.locname, sub.locname) AS "
+        r'"\1"',
+        result,
+    )
+    if group_id and "customer_groups" not in result:
+        result = re.sub(
+            r"(\)\s+sub\b)",
+            r"\1\n"
+            r"LEFT JOIN public.customer_groups g "
+            rf"ON g.group_id = '{group_id}' AND g.metadata ? 'display_name_overrides'",
+            result,
+            count=1,
+        )
+    return result
+
+
+def _patch_cte_display_names(sql: str) -> str:
+    """Patch a CTE query where a CTE selects ``locname AS "Location"``.
+
+    Uses a correlated subquery with the hardcoded ``group_id`` extracted
+    from the existing SQL to resolve the display name from
+    ``customer_groups.metadata``, avoiding any join restructuring.
+    """
+    # Extract the hardcoded group_id from the SQL
+    group_id_match = re.search(r"group_id\s*=\s*'([^']+)'", sql)
+    group_id = group_id_match.group(1) if group_id_match else ""
+
+    result = sql
+
+    if group_id:
+        # Replace locname AS "Location" with a correlated subquery
+        result = re.sub(
+            r'\blocname\s+AS\s+"(Location)"',
+            r"COALESCE("
+            r"(SELECT g2.metadata->'display_name_overrides'->>nearest_points.locname "
+            r"FROM public.customer_groups g2 "
+            rf"WHERE g2.group_id = '{group_id}' "
+            r"AND g2.metadata ? 'display_name_overrides'), "
+            r"nearest_points.locname"
+            r') AS "\1"',
+            result,
+        )
+
+    return result
+
+
+def _add_coordinates_panel(
+    dashboard: dict,
+    group_id: str,
+    conn_str: str | None,
+) -> None:
+    """Add a coordinates display panel showing lat/lon of the selected location.
+
+    The panel queries ``forecast_locations`` for the current ``$location`` and
+    displays latitude and longitude in decimal degrees.  Only added when the
+    group has location records with non-NULL coordinates.
+
+    The panel is inserted after the first section row or at the top of the
+    second section (e.g. after the "Location Summary" row in combined
+    dashboards).  Existing panels are shifted down to make room.
+    """
+    if not conn_str:
+        return
+
+    # Check if any locations have coordinates for this group
+    has_coords = False
+    try:
+        import psycopg2  # type: ignore
+    except ImportError:
+        return
+
+    sql = """
+        SELECT 1 FROM public.forecast_locations
+        WHERE group_id = %s AND latitude IS NOT NULL AND longitude IS NOT NULL
+        LIMIT 1;
+    """
+    try:
+        with psycopg2.connect(conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (group_id,))
+                has_coords = cur.fetchone() is not None
+    except Exception as exc:
+        log.warning("Failed to check coordinates for %s: %s", group_id, exc)
+        return
+
+    if not has_coords:
+        return
+
+    coord_panel = {
+        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+        "description": "Latitude and longitude of the selected forecast location.",
+        "fieldConfig": {
+            "defaults": {
+                "color": {
+                    "mode": "thresholds"
+                },
+                "mappings": [],
+                "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                        {
+                            "color": "text",
+                            "value": None
+                        }
+                    ]
+                },
+                "custom": {
+                    "align": "center"
+                }
+            },
+            "overrides": []
+        },
+        "gridPos": {"h": 3, "w": 24, "x": 0, "y": 0},
+        "id": 0,  # Will be assigned after existing max id
+        "options": {
+            "cellHeight": "md",
+            "footer": {
+                "countRows": False,
+                "fields": "",
+                "reducer": ["sum"],
+                "show": False,
+            },
+            "showHeader": False,
+        },
+        "pluginVersion": "",
+        "targets": [
+            {
+                "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+                "editorMode": "code",
+                "format": "table",
+                "rawQuery": True,
+                "rawSql": (
+                    "SELECT\n"
+                    f"  '(' || ROUND(latitude::numeric, 6) || ', ' || ROUND(longitude::numeric, 6) || ')' AS coordinates\n"
+                    f"FROM public.forecast_locations\n"
+                    f"WHERE group_id = '{group_id}'\n"
+                    f"  AND locname = '$location';\n"
+                ),
+                "refId": "A",
+            }
+        ],
+        "title": "Location Coordinates",
+        "type": "table",
+    }
+
+    # Assign an ID that doesn't conflict with existing panels
+    existing_ids = [p.get("id", 0) for p in dashboard.get("panels", [])]
+    for panel_list in dashboard.get("panels", []):
+        if "panels" in panel_list:
+            existing_ids.extend(sp.get("id", 0) for sp in panel_list["panels"])
+    coord_panel["id"] = max(existing_ids + [9999]) + 1
+
+    # Place at the VERY TOP (y=0, before any row headers) so the panel is
+    # dashboard-level and NOT inside the repeated wind-height section.
+    panels = dashboard.get("panels", [])
+
+    # Shift ALL existing panels down by the coordinates panel height
+    shift_y = coord_panel["gridPos"]["h"]
+    for p in panels:
+        g = p.get("gridPos", {})
+        g["y"] = g.get("y", 0) + shift_y
+        if "panels" in p:
+            _shift_panels_down(p["panels"], shift_y)
+
+    # Insert at position 0
+    panels.insert(0, coord_panel)
+
+
+def _shift_panels_down(panels: list, shift_y: int) -> None:
+    """Shift all panels in a list down by shift_y rows."""
+    for panel in panels:
+        g = panel.get("gridPos", {})
+        g["y"] = g.get("y", 0) + shift_y
+        if "panels" in panel:
+            _shift_panels_down(panel["panels"], shift_y)
+
+
 def make_group_dashboard(
     template: dict,
     group_id: str,
@@ -392,6 +739,8 @@ def make_group_dashboard(
     default_location: str | None = None,
     wind_height_count: int = -1,
     tide_display_unit: str = "ft",
+    customer_metadata: dict | None = None,
+    conn_str: str | None = None,
 ) -> dict:
     """
     Transform a shared customer dashboard template into a group-specific
@@ -404,6 +753,8 @@ def make_group_dashboard(
     - Update uid, title, and description
     - For tide dashboards with only 1 location: remove "Tide by Location" panel
       and adjust "Current Tide" panel positioning to sit next to Tide Forecast Data
+    - Apply display-name overrides from customer metadata
+    - Add coordinates panel if location metadata exists
     """
     d = copy.deepcopy(template)
     legacy_wind_height_m = LEGACY_WIND_HEIGHT_M.get(group_id, 20)
@@ -470,10 +821,28 @@ def make_group_dashboard(
     # -- Hardcode group_id in all panel SQL ----------------------------------
     _patch_group_id(d.get("panels", []), group_id)
 
-    if "tide" in dtype and tide_display_unit != "ft":
+    # -- Tide panels always read the display view ----------------------------
+    # v_forecast_data_display carries unit conversion AND the vertical-datum
+    # offset (from forecast_locations.metadata -> vertical_datum), so tide
+    # dashboards always present the configured display datum (e.g. MLLW for
+    # Penobscot).  For ft groups the display columns equal the stored values
+    # (offset 0), preserving backward compatibility.
+    if "tide" in dtype:
         _patch_tide_display_units(d, tide_display_unit)
     if "wind" in dtype and legacy_wind_height_m != 20:
         _patch_legacy_wind_height(d, legacy_wind_height_m)
+
+    # -- Apply display-name overrides from customer metadata -----------------
+    if customer_metadata:
+        display_overrides = customer_metadata.get("display_name_overrides", {})
+        if display_overrides:
+            _patch_location_variable_display_names(d, group_id)
+            _patch_sql_display_names(d.get("panels", []), group_id)
+
+    # -- Add coordinates panel if location metadata exists -------------------
+    feature_flags = (customer_metadata or {}).get("feature_flags", {})
+    if feature_flags.get("coordinates_display", False) and conn_str:
+        _add_coordinates_panel(d, group_id, conn_str)
 
     # -- Filter panels for single-location groups (tide only) -----------------
     if dtype == "tide" and location_count == 1:
@@ -511,6 +880,8 @@ def make_combined_group_dashboard(
     default_location: str | None = None,
     wind_height_count: int = -1,
     tide_display_unit: str = "ft",
+    customer_metadata: dict | None = None,
+    conn_str: str | None = None,
 ) -> dict:
     """Build a single customer dashboard from multiple customer templates."""
     source_types = COMBINED_DASHBOARDS[combined_type]
@@ -574,17 +945,19 @@ def make_combined_group_dashboard(
         d, group_id, combined_type, display_name, default_location=default_location,
         wind_height_count=wind_height_count,
         tide_display_unit=tide_display_unit,
+        customer_metadata=customer_metadata,
+        conn_str=conn_str,
     )
     if "wind" in source_types:
         _patch_non_nbm_wind_startdt_filters(d.get("panels", []), f"'{group_id}'")
     if combined_type == "tide_wind":
-        _patch_tide_wind_dashboard(d, group_id)
+        _patch_tide_wind_dashboard(d, group_id, customer_metadata)
     d["time"] = {"from": "now", "to": "now+7d" if combined_type == "tide_wind" else "now+24h"}
     d["tags"] = ["customer", *source_types, "combined"]
     return d
 
 
-def _patch_tide_wind_dashboard(dashboard: dict, group_id: str) -> None:
+def _patch_tide_wind_dashboard(dashboard: dict, group_id: str, customer_metadata: dict | None = None) -> None:
     legacy_wind_height_m = LEGACY_WIND_HEIGHT_M.get(group_id, 20)
     _add_location_timezone_variable(dashboard, group_id)
     _patch_tide_wind_time_panel(dashboard.get("panels", []), group_id, legacy_wind_height_m)
@@ -592,6 +965,354 @@ def _patch_tide_wind_dashboard(dashboard: dict, group_id: str) -> None:
     if removed_y is not None:
         _shift_panels_below(dashboard.get("panels", []), removed_y, -9)
     _patch_tide_wind_speed_direction_panel(dashboard.get("panels", []), group_id, legacy_wind_height_m)
+    # Insert a section row before Wind Speed by Location so it is NOT
+    # captured by the height_m repeat on the wind section row.
+    _insert_windspeed_table_section_break(dashboard.get("panels", []))
+    # Split the single $model variable into $wind_model and $tide_model so
+    # wind and tide panels each use the correct default model. Without this,
+    # the combined dashboard's single $model covers one data type only and
+    # the other shows "No data".
+    _split_combined_model_variables(dashboard, group_id)
+    # Fix Gusts panel height to h=3 so Prob Thunder fits below it
+    _fix_wind_gusts_height(dashboard.get("panels", []))
+    # Add optional feature-flag panels after structural patches are done
+    if customer_metadata:
+        _add_feature_flag_panels(dashboard, group_id, customer_metadata)
+
+
+def _insert_windspeed_table_section_break(panels: list) -> None:
+    """Insert a non-repeating row before the Wind Speed by Location table.
+
+    Without this section break the table is captured by the ``repeat=height_m``
+    on the wind section row and duplicates for each wind height.
+    """
+    for i, p in enumerate(panels):
+        if "Wind Speed by Location" not in str(p.get("title", "")):
+            continue
+        # Find the maximum existing ID
+        max_id = max((pp.get("id", 0) for pp in panels), default=0)
+        for pp in panels:
+            if "panels" in pp:
+                max_id = max(max_id, max((sp.get("id", 0) for sp in pp["panels"]), default=0))
+
+        row_y = p.get("gridPos", {}).get("y", 0)
+        row_panel = {
+            "collapsed": False,
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": row_y},
+            "id": max_id + 1,
+            "panels": [],
+            "title": "Wind Speed Summary",
+            "type": "row",
+        }
+        # Shift the Wind Speed table and everything below down by 1
+        for j in range(i, len(panels)):
+            g = panels[j].get("gridPos", {})
+            g["y"] = g.get("y", 0) + 1
+        panels.insert(i, row_panel)
+        return
+
+
+def _split_combined_model_variables(dashboard: dict, group_id: str) -> None:
+    """Replace the single ``model`` variable with ``wind_model`` and ``tide_model``.
+
+    Updates all panel SQL to reference the correct variable so wind panels
+    use the wind default and tide panels use the tide default.
+    """
+    templating = dashboard.get("templating", {}).get("list", [])
+    model_var = None
+    model_idx = None
+    for i, var in enumerate(templating):
+        if var.get("name") == "model":
+            model_var = var
+            model_idx = i
+            break
+    if model_var is None:
+        return
+
+    # Clone the variable for wind
+    wind_model_var = copy.deepcopy(model_var)
+    wind_model_var["name"] = "wind_model"
+    wind_model_var["label"] = "Wind Model"
+    wind_default = DEFAULT_MODEL.get(group_id, {}).get("wind")
+    if wind_default:
+        wind_model_var["current"] = {"text": wind_default, "value": wind_default}
+    else:
+        wind_model_var.pop("current", None)
+
+    # Clone the variable for tide — its query must filter by tide columns.
+    tide_model_var = copy.deepcopy(model_var)
+    tide_model_var["name"] = "tide_model"
+    tide_model_var["label"] = "Tide Model"
+    tide_default = DEFAULT_MODEL.get(group_id, {}).get("tide")
+    if tide_default:
+        tide_model_var["current"] = {"text": tide_default, "value": tide_default}
+    else:
+        tide_model_var.pop("current", None)
+    # Fix the tide_model query: change windspdmean → tidemean so it lists
+    # actual tide models (e.g. tide_blend, tide_nbm, tide_astro).
+    for field in ("query", "definition"):
+        q = tide_model_var.get(field, "")
+        if "windspdmean" in q:
+            q = q.replace("windspdmean", "tidemean")
+            tide_model_var[field] = q
+
+    # Ensure both variables have a group_id filter
+    for var in (wind_model_var, tide_model_var):
+        for field in ("query", "definition"):
+            q = var.get(field, "")
+            if q and "group_id = '" not in q and "group_id='" not in q:
+                # Append group_id filter before ORDER BY
+                if "ORDER BY" in q:
+                    q = q.replace("ORDER BY", f"AND group_id = '{group_id}' ORDER BY")
+                else:
+                    q = q + f"\nAND group_id = '{group_id}'"
+                var[field] = q
+
+    # Replace the single model variable with wind_model + tide_model
+    templating[model_idx:model_idx + 1] = [wind_model_var, tide_model_var]
+
+    # Patch all panel SQL: $model → $wind_model for wind queries,
+    # $model → $tide_model for tide queries, and $model → $wind_model
+    # for probability-of-thunder queries.
+    _patch_model_references(dashboard.get("panels", []))
+
+    # Also patch template variable queries that reference $model
+    for var in templating:
+        for field in ("query", "definition"):
+            query = var.get(field, "")
+            if "$model" not in query:
+                continue
+            if "windspdmean" in query.upper() or "WINDDIR" in query.upper():
+                var[field] = query.replace("$model", "$wind_model")
+            elif "tidemean" in query.upper():
+                var[field] = query.replace("$model", "$tide_model")
+            else:
+                var[field] = query.replace("$model", "$wind_model")
+
+
+def _patch_model_references(panels: list) -> None:
+    """Replace ``$model`` in panel SQL with the correct model variable.
+
+    Wind-related queries get ``$wind_model``, tide-related queries get
+    ``$tide_model``, and thunderstorm-probability queries get ``$wind_model``.
+    """
+    for panel in panels:
+        for target in panel.get("targets", []):
+            raw_sql = target.get("rawSql", "")
+            if not raw_sql or "$model" not in raw_sql:
+                continue
+
+            sql_upper = raw_sql.upper()
+            # Determine which model variable to use
+            if "TIDEMEAN" in sql_upper or "ASTROTIDE" in sql_upper or "PRELIMTIDE" in sql_upper:
+                new_var = "$tide_model"
+            elif "POT" in sql_upper and "THUNDER" in (panel.get("title") or "").upper():
+                new_var = "$wind_model"
+            elif "WINDSPDMEAN" in sql_upper or "WINDSPD" in sql_upper or "WINDDIR" in sql_upper:
+                new_var = "$wind_model"
+            else:
+                new_var = "$wind_model"  # default to wind
+
+            target["rawSql"] = raw_sql.replace("$model", new_var)
+
+        if "panels" in panel:
+            _patch_model_references(panel["panels"])
+
+
+def _fix_wind_gusts_height(panels: list) -> None:
+    """Reduce the Gusts stat panel height from 6 to 3.
+
+    In the combined layout, Gusts occupies 6 rows (same span as Speed +
+    Direction combined) which leaves no room for the Prob Thunderstorms
+    stat.  Reducing h to 3 also shifts everything BELOW Gusts's bottom
+    edge upward to close the gap, while leaving panels at the same y
+    that are stacked alongside Gusts (e.g. Direction at x=18) untouched.
+    """
+    for panel in panels:
+        title = str(panel.get("title", ""))
+        if "Gusts" in title:
+            grid = panel.get("gridPos", {})
+            if grid.get("h", 0) == 6:
+                old_h = grid["h"]
+                gusts_bottom = grid["y"] + old_h
+                grid["h"] = 3
+                new_bottom = grid["y"] + grid["h"]
+                shift = new_bottom - gusts_bottom  # negative
+                for other in panels:
+                    if other is panel:
+                        continue
+                    og = other.get("gridPos", {})
+                    # Only shift panels whose top is AT or BELOW the old bottom edge
+                    if og.get("y", 0) >= gusts_bottom:
+                        og["y"] = max(0, og.get("y", 0) + shift)
+        if "panels" in panel:
+            _fix_wind_gusts_height(panel["panels"])
+
+
+def _add_feature_flag_panels(
+    dashboard: dict,
+    group_id: str,
+    customer_metadata: dict,
+) -> None:
+    """Add optional panels driven by customer feature flags.
+
+    Currently supports:
+    - ``thunderstorm_prob``: adds a "Prob of Thunderstorms" stat panel
+      and a "Location Summary & Tide" section row header.
+    """
+    feature_flags = customer_metadata.get("feature_flags", {})
+    panels = dashboard.get("panels", [])
+
+    # Find the maximum existing panel ID
+    max_id = max((p.get("id", 0) for p in panels), default=0)
+    for p in panels:
+        if "panels" in p:
+            max_id = max(max_id, max((sp.get("id", 0) for sp in p["panels"]), default=0))
+
+    next_id = max_id + 1
+
+    if feature_flags.get("thunderstorm_prob", False):
+        # Find where the tide section begins
+        tide_index = None
+        for i, p in enumerate(panels):
+            if str(p.get("title", "")).startswith("Tide") and p.get("type") != "row":
+                tide_index = i
+                break
+
+        # Find the Gusts panel to place Prob Thunder right below it
+        gusts_panel = None
+        gusts_index = None
+        for i, p in enumerate(panels):
+            if "Gusts" in str(p.get("title", "")):
+                gusts_panel = p
+                gusts_index = i
+                break
+
+        # Add the Prob of Thunderstorms panel below Gusts
+        if gusts_panel is not None:
+            gusts_y = gusts_panel["gridPos"]["y"]
+            gusts_h = gusts_panel["gridPos"]["h"]
+            prob_y = gusts_y + gusts_h  # right below Gusts
+
+            prob_panel = {
+                "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+                "description": "Probability of Thunder in the next 6 hours.",
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {"mode": "thresholds"},
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {"color": "green", "value": None},
+                                {"color": "yellow", "value": 0.2},
+                                {"color": "orange", "value": 0.4},
+                                {"color": "red", "value": 0.6},
+                            ],
+                        },
+                        "unit": "percentunit",
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {"id": "byName", "options": "pot"},
+                            "properties": [
+                                {"id": "displayName", "value": "Prob of Thunderstorms"},
+                                {"id": "color", "value": {"mode": "thresholds"}},
+                            ],
+                        }
+                    ],
+                },
+                "gridPos": {"h": 3, "w": 3, "x": 21, "y": prob_y},
+                "id": next_id,
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "reduceOptions": {
+                        "calcs": ["lastNotNull"],
+                        "fields": "",
+                        "values": False,
+                    },
+                    "text": {"valueSize": 34},
+                    "textMode": "value",
+                },
+                "targets": [
+                    {
+                        "datasource": {"type": "postgres", "uid": "supabase-postgres"},
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": True,
+                        "rawSql": (
+                            "WITH selected_run AS (\n"
+                            "  SELECT MAX(startdt) AS startdt\n"
+                            "  FROM forecast_data\n"
+                            "  WHERE startdt <= NOW()::timestamptz\n"
+                            f"    AND pot IS NOT NULL\n"
+                            "    AND locname = '$location'\n"
+                            f"    AND group_id = '{group_id}'\n"
+                            "    AND model = '$wind_model'\n"
+                            ")\n"
+                            "SELECT\n"
+                            "  pot\n"
+                            "FROM forecast_data\n"
+                            "WHERE\n"
+                            "  pot IS NOT NULL\n"
+                            "  AND locname = '$location'\n"
+                            f"  AND group_id = '{group_id}'\n"
+                            "  AND model = '$wind_model'\n"
+                            "  AND startdt = (SELECT startdt FROM selected_run)\n"
+                            "ORDER BY timestamp DESC\n"
+                            "LIMIT 1"
+                        ),
+                        "refId": "A",
+                    }
+                ],
+                "title": "Prob of Thunderstorms",
+                "type": "stat",
+            }
+            next_id += 1
+            # Insert after Gusts and shift panels below prob_y down
+            insert_idx = gusts_index + 1
+            panels.insert(insert_idx, prob_panel)
+            for j in range(insert_idx + 1, len(panels)):
+                g = panels[j].get("gridPos", {})
+                if g.get("y", 0) >= prob_y:
+                    g["y"] = g.get("y", 0) + 3
+
+        # Place the Location Summary & Tide row at the transition to tide
+        if tide_index is not None:
+            # Recalculate tide_index after prob thunder insertion
+            tide_index = None
+            for i, p in enumerate(panels):
+                if str(p.get("title", "")).startswith("Tide") and p.get("type") != "row":
+                    tide_index = i
+                    break
+
+            # Find the new max y in sections before tide
+            pre_tide_max_y = 0
+            for i, p in enumerate(panels):
+                if tide_index is not None and i >= tide_index:
+                    break
+                g = p.get("gridPos", {})
+                end_y = g.get("y", 0) + g.get("h", 0)
+                if end_y > pre_tide_max_y:
+                    pre_tide_max_y = end_y
+
+            row_panel = {
+                "collapsed": False,
+                "gridPos": {"h": 1, "w": 24, "x": 0, "y": pre_tide_max_y},
+                "id": next_id,
+                "panels": [],
+                "title": "Location Summary & Tide",
+                "type": "row",
+            }
+            next_id += 1
+            panels.insert(tide_index, row_panel)
+            for j in range(tide_index + 1, len(panels)):
+                g = panels[j].get("gridPos", {})
+                if g.get("y", 0) >= pre_tide_max_y:
+                    g["y"] = g.get("y", 0) + 1
 
 
 def _add_location_timezone_variable(dashboard: dict, group_id: str) -> None:
@@ -1247,6 +1968,12 @@ def main() -> None:
         if not args.dry_run:
             group_dir.mkdir(parents=True, exist_ok=True)
 
+        # Load customer profile metadata for display-name overrides, feature flags, etc.
+        customer_metadata = (
+            {} if args.dry_run
+            else load_customer_metadata(conn_str, group_id)
+        )
+
         combined_source_types: set[str] = set()
         for combined_type in COMBINED_DASHBOARD_GROUPS.get(group_id, ()):
             source_types = COMBINED_DASHBOARDS[combined_type]
@@ -1276,6 +2003,8 @@ def main() -> None:
                     default_location=default_location,
                     wind_height_count=wind_height_count,
                     tide_display_unit=tide_display_unit,
+                    customer_metadata=customer_metadata,
+                    conn_str=conn_str,
                 )
                 out_file = group_dir / f"{combined_type}.json"
                 combined_source_types.update(source_types)
@@ -1328,6 +2057,8 @@ def main() -> None:
                 default_location=default_location,
                 wind_height_count=wind_height_count,
                 tide_display_unit=tide_display_unit,
+                customer_metadata=customer_metadata,
+                conn_str=conn_str,
             )
             out_file = group_dir / f"{dtype}.json"
 

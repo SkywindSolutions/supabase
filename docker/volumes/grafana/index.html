@@ -733,12 +733,22 @@
           var actions = document.createElement('div');
           actions.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:flex-end;gap:4px;';
 
-          // Change Password button
-          var pwBtn = makeBtn('Change Password');
-          pwBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            showPasswordModal();
-          });
+          // Determine if this user should be allowed to change their password.
+          // Shared-account users (e.g. Carnival) should not see the option.
+          // Check the customer profile's auth metadata via the Grafana user login.
+          var userLogin = (window.grafanaBootData && window.grafanaBootData.user && window.grafanaBootData.user.login) || '';
+          var sharedAccounts = ['carnival', 'test_carnival'];
+          var allowPasswordChange = sharedAccounts.indexOf(userLogin.toLowerCase()) === -1;
+
+          // Change Password button (only for non-shared accounts)
+          if (allowPasswordChange) {
+            var pwBtn = makeBtn('Change Password');
+            pwBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              showPasswordModal();
+            });
+            actions.appendChild(pwBtn);
+          }
 
           // User Guide link (opens in new tab)
           var guideBtn = makeBtn('User Guide');
@@ -754,7 +764,6 @@
             window.location.href = '/logout';
           });
 
-          actions.appendChild(pwBtn);
           actions.appendChild(guideBtn);
           actions.appendChild(outBtn);
 

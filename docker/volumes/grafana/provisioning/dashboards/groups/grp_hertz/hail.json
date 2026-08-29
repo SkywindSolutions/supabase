@@ -1,0 +1,1506 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Hail forecast for Hertz Local Edition \u2013 Pueblo North. Customer-facing Hertz dashboard.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 900,
+      "panels": [],
+      "title": "Hail Forecast",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Forecast probability of hail over the next 24 hours from the latest forecast run.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Probability",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.15
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prob of Hail"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Prob of Hail"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 0,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::TIMESTAMPTZ\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND hailprob IS NOT NULL\n)\nSELECT\n  timestamp AS \"time\",\n  hailprob AS \"Prob of Hail\"\nFROM forecast_data\nWHERE\n  hailprob IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hertz'\n  AND model = '$model'\n  AND startdt = (SELECT max_startdt FROM latest)\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Hail Probability Forecast",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Current local time at the forecast location.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:MM-DD h:mm A"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 20
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM NOW() AT TIME ZONE '$location_tz' AT TIME ZONE 'UTC') * 1000 AS current_time",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Time",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum probability of lightning (thunderstorm) in the next 24 hours.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.75
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pot"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Lightning Prob"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 4
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(pot) AS pot\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hertz'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Max Prob of Thunderstorms (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Time of maximum lightning probability.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:MM-DD h:mm A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "peak_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Peak Prob Time"
+              },
+              {
+                "id": "unit",
+                "value": "time:MM-DD h:mm A"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 4
+      },
+      "id": 101,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 14
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM timestamp) * 1000 AS peak_time\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hertz'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY pot DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Prob Time",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Sustained wind speed is not currently available for this location; forecast wind gust is shown separately.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "#9E9E9E",
+                  "text": "\u2013"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              }
+            ]
+          },
+          "unit": "velocitymph"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspd"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Speed"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 7
+      },
+      "id": 102,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(windspd * 1.15078)::double precision AS windspd\nFROM forecast_data\nWHERE\n  windspd IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hertz'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Wind Speed",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum forecast wind gust in the forecast period.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#FFCC00",
+                "value": 23
+              },
+              {
+                "color": "orange",
+                "value": 35
+              },
+              {
+                "color": "red",
+                "value": 46
+              }
+            ]
+          },
+          "unit": "velocitymph"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "gust"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Gusts"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 7
+      },
+      "id": 103,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(gust * 1.15078)::double precision AS gust\nFROM forecast_data\nWHERE\n  gust IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hertz'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Gusts",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 960,
+      "options": {
+        "content": "<div style=\"text-align:left;\"><div style=\"font-size:20px;font-weight:600;\">Severe Weather Outlook</div><div style=\"font-size:13px;color:#8e8e8e;margin-top:2px;\">4-day outlook \u2014 maximum probability of severe hail, damaging wind, or tornado each local day.</div></div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum severe-weather probability for ${day1_label} (local day).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "from": 0,
+                "result": {
+                  "color": "#9E9E9E"
+                },
+                "to": 0.1
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.1,
+                "result": {
+                  "color": "green"
+                },
+                "to": 0.25
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.25,
+                "result": {
+                  "color": "#FFCC00"
+                },
+                "to": 0.45
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.45,
+                "result": {
+                  "color": "orange"
+                },
+                "to": 0.7
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.7,
+                "result": {
+                  "color": "red"
+                },
+                "to": 1.0001
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "#9E9E9E",
+                  "text": "\u2013"
+                }
+              },
+              "type": "special"
+            },
+            {
+              "options": {
+                "Elevated": {
+                  "color": "#FFCC00"
+                },
+                "High": {
+                  "color": "orange"
+                },
+                "Low": {
+                  "color": "green"
+                },
+                "Very High": {
+                  "color": "red"
+                },
+                "Very Low": {
+                  "color": "#9E9E9E"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.1
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 12
+      },
+      "id": 110,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::TIMESTAMPTZ\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n), src AS (\n  SELECT\n    timestamp,\n    GREATEST(\n      COALESCE(hailprob, 0),\n      COALESCE(windprob, 0),\n      COALESCE(tornprob, 0)\n    ) AS risk,\n    hailprob,\n    windprob,\n    tornprob\n  FROM forecast_data\n  WHERE\n    (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND startdt = (SELECT max_startdt FROM latest)\n    AND timestamp >= NOW()::TIMESTAMPTZ - INTERVAL '1 day'\n    AND timestamp <= NOW()::TIMESTAMPTZ + INTERVAL '4 days'\n)\nSELECT\n  MAX(risk) AS pct,\n  CASE\n    WHEN MAX(risk) < 0.10 THEN 'Very Low'\n    WHEN MAX(risk) < 0.25 THEN 'Low'\n    WHEN MAX(risk) < 0.45 THEN 'Elevated'\n    WHEN MAX(risk) < 0.70 THEN 'High'\n    WHEN MAX(risk) >= 0.70 THEN 'Very High'\n  END AS level,\n  CASE\n    WHEN MAX(risk) IS NULL THEN NULL\n    WHEN MAX(COALESCE(windprob, 0)) >= GREATEST(MAX(COALESCE(hailprob, 0)), MAX(COALESCE(tornprob, 0)))\n      THEN 'Wind'\n    WHEN MAX(COALESCE(hailprob, 0)) >= MAX(COALESCE(tornprob, 0))\n      THEN 'Hail'\n    ELSE 'Tornado'\n  END AS hazard\nFROM src\nWHERE date_trunc('day', timestamp AT TIME ZONE '$location_tz')\n    = date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '0 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "${day1_label}",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum severe-weather probability for ${day2_label} (local day).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "from": 0,
+                "result": {
+                  "color": "#9E9E9E"
+                },
+                "to": 0.1
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.1,
+                "result": {
+                  "color": "green"
+                },
+                "to": 0.25
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.25,
+                "result": {
+                  "color": "#FFCC00"
+                },
+                "to": 0.45
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.45,
+                "result": {
+                  "color": "orange"
+                },
+                "to": 0.7
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.7,
+                "result": {
+                  "color": "red"
+                },
+                "to": 1.0001
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "#9E9E9E",
+                  "text": "\u2013"
+                }
+              },
+              "type": "special"
+            },
+            {
+              "options": {
+                "Elevated": {
+                  "color": "#FFCC00"
+                },
+                "High": {
+                  "color": "orange"
+                },
+                "Low": {
+                  "color": "green"
+                },
+                "Very High": {
+                  "color": "red"
+                },
+                "Very Low": {
+                  "color": "#9E9E9E"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.1
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 12
+      },
+      "id": 111,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::TIMESTAMPTZ\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n), src AS (\n  SELECT\n    timestamp,\n    GREATEST(\n      COALESCE(hailprob, 0),\n      COALESCE(windprob, 0),\n      COALESCE(tornprob, 0)\n    ) AS risk,\n    hailprob,\n    windprob,\n    tornprob\n  FROM forecast_data\n  WHERE\n    (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND startdt = (SELECT max_startdt FROM latest)\n    AND timestamp >= NOW()::TIMESTAMPTZ - INTERVAL '1 day'\n    AND timestamp <= NOW()::TIMESTAMPTZ + INTERVAL '4 days'\n)\nSELECT\n  MAX(risk) AS pct,\n  CASE\n    WHEN MAX(risk) < 0.10 THEN 'Very Low'\n    WHEN MAX(risk) < 0.25 THEN 'Low'\n    WHEN MAX(risk) < 0.45 THEN 'Elevated'\n    WHEN MAX(risk) < 0.70 THEN 'High'\n    WHEN MAX(risk) >= 0.70 THEN 'Very High'\n  END AS level,\n  CASE\n    WHEN MAX(risk) IS NULL THEN NULL\n    WHEN MAX(COALESCE(windprob, 0)) >= GREATEST(MAX(COALESCE(hailprob, 0)), MAX(COALESCE(tornprob, 0)))\n      THEN 'Wind'\n    WHEN MAX(COALESCE(hailprob, 0)) >= MAX(COALESCE(tornprob, 0))\n      THEN 'Hail'\n    ELSE 'Tornado'\n  END AS hazard\nFROM src\nWHERE date_trunc('day', timestamp AT TIME ZONE '$location_tz')\n    = date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '1 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "${day2_label}",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum severe-weather probability for ${day3_label} (local day).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "from": 0,
+                "result": {
+                  "color": "#9E9E9E"
+                },
+                "to": 0.1
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.1,
+                "result": {
+                  "color": "green"
+                },
+                "to": 0.25
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.25,
+                "result": {
+                  "color": "#FFCC00"
+                },
+                "to": 0.45
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.45,
+                "result": {
+                  "color": "orange"
+                },
+                "to": 0.7
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.7,
+                "result": {
+                  "color": "red"
+                },
+                "to": 1.0001
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "#9E9E9E",
+                  "text": "\u2013"
+                }
+              },
+              "type": "special"
+            },
+            {
+              "options": {
+                "Elevated": {
+                  "color": "#FFCC00"
+                },
+                "High": {
+                  "color": "orange"
+                },
+                "Low": {
+                  "color": "green"
+                },
+                "Very High": {
+                  "color": "red"
+                },
+                "Very Low": {
+                  "color": "#9E9E9E"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.1
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 12
+      },
+      "id": 112,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::TIMESTAMPTZ\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n), src AS (\n  SELECT\n    timestamp,\n    GREATEST(\n      COALESCE(hailprob, 0),\n      COALESCE(windprob, 0),\n      COALESCE(tornprob, 0)\n    ) AS risk,\n    hailprob,\n    windprob,\n    tornprob\n  FROM forecast_data\n  WHERE\n    (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND startdt = (SELECT max_startdt FROM latest)\n    AND timestamp >= NOW()::TIMESTAMPTZ - INTERVAL '1 day'\n    AND timestamp <= NOW()::TIMESTAMPTZ + INTERVAL '4 days'\n)\nSELECT\n  MAX(risk) AS pct,\n  CASE\n    WHEN MAX(risk) < 0.10 THEN 'Very Low'\n    WHEN MAX(risk) < 0.25 THEN 'Low'\n    WHEN MAX(risk) < 0.45 THEN 'Elevated'\n    WHEN MAX(risk) < 0.70 THEN 'High'\n    WHEN MAX(risk) >= 0.70 THEN 'Very High'\n  END AS level,\n  CASE\n    WHEN MAX(risk) IS NULL THEN NULL\n    WHEN MAX(COALESCE(windprob, 0)) >= GREATEST(MAX(COALESCE(hailprob, 0)), MAX(COALESCE(tornprob, 0)))\n      THEN 'Wind'\n    WHEN MAX(COALESCE(hailprob, 0)) >= MAX(COALESCE(tornprob, 0))\n      THEN 'Hail'\n    ELSE 'Tornado'\n  END AS hazard\nFROM src\nWHERE date_trunc('day', timestamp AT TIME ZONE '$location_tz')\n    = date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '2 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "${day3_label}",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Maximum severe-weather probability for ${day4_label} (local day).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "from": 0,
+                "result": {
+                  "color": "#9E9E9E"
+                },
+                "to": 0.1
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.1,
+                "result": {
+                  "color": "green"
+                },
+                "to": 0.25
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.25,
+                "result": {
+                  "color": "#FFCC00"
+                },
+                "to": 0.45
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.45,
+                "result": {
+                  "color": "orange"
+                },
+                "to": 0.7
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 0.7,
+                "result": {
+                  "color": "red"
+                },
+                "to": 1.0001
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "#9E9E9E",
+                  "text": "\u2013"
+                }
+              },
+              "type": "special"
+            },
+            {
+              "options": {
+                "Elevated": {
+                  "color": "#FFCC00"
+                },
+                "High": {
+                  "color": "orange"
+                },
+                "Low": {
+                  "color": "green"
+                },
+                "Very High": {
+                  "color": "red"
+                },
+                "Very Low": {
+                  "color": "#9E9E9E"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.1
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 12
+      },
+      "id": 113,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 26
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::TIMESTAMPTZ\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n), src AS (\n  SELECT\n    timestamp,\n    GREATEST(\n      COALESCE(hailprob, 0),\n      COALESCE(windprob, 0),\n      COALESCE(tornprob, 0)\n    ) AS risk,\n    hailprob,\n    windprob,\n    tornprob\n  FROM forecast_data\n  WHERE\n    (hailprob IS NOT NULL OR windprob IS NOT NULL OR tornprob IS NOT NULL)\n    AND locname = '$location'\n    AND group_id = 'grp_hertz'\n    AND model = '$model'\n    AND startdt = (SELECT max_startdt FROM latest)\n    AND timestamp >= NOW()::TIMESTAMPTZ - INTERVAL '1 day'\n    AND timestamp <= NOW()::TIMESTAMPTZ + INTERVAL '4 days'\n)\nSELECT\n  MAX(risk) AS pct,\n  CASE\n    WHEN MAX(risk) < 0.10 THEN 'Very Low'\n    WHEN MAX(risk) < 0.25 THEN 'Low'\n    WHEN MAX(risk) < 0.45 THEN 'Elevated'\n    WHEN MAX(risk) < 0.70 THEN 'High'\n    WHEN MAX(risk) >= 0.70 THEN 'Very High'\n  END AS level,\n  CASE\n    WHEN MAX(risk) IS NULL THEN NULL\n    WHEN MAX(COALESCE(windprob, 0)) >= GREATEST(MAX(COALESCE(hailprob, 0)), MAX(COALESCE(tornprob, 0)))\n      THEN 'Wind'\n    WHEN MAX(COALESCE(hailprob, 0)) >= MAX(COALESCE(tornprob, 0))\n      THEN 'Hail'\n    ELSE 'Tornado'\n  END AS hazard\nFROM src\nWHERE date_trunc('day', timestamp AT TIME ZONE '$location_tz')\n    = date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '3 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "${day4_label}",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 962,
+      "options": {
+        "content": "<div style=\"display:flex;justify-content:flex-start;align-items:center;gap:28px;font-size:13px;flex-wrap:wrap;\"><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#E53935;margin-right:6px;\"></span>Very high 70%+</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#C0392B;margin-right:6px;\"></span>High 45-70%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#F2A93B;margin-right:6px;\"></span>Elevated 25-45%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#5B9B4B;margin-right:6px;\"></span>Low 10-25%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#9E9E9E;margin-right:6px;\"></span>Very low 0-10%</span></div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 951,
+      "options": {
+        "content": "<div style=\"text-align:center;padding:8px;\"><a href=\"/d/home-grp_hertz/?kiosk\" style=\"color:rgba(255,255,255,0.6);text-decoration:none;font-size:13px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:6px 20px;display:inline-block;\">\u2190 Back to Hertz Home</a></div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "customer",
+    "hertz",
+    "hail"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "hertz_nbm",
+          "value": "hertz_nbm"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT model FROM forecast_data WHERE hailprob IS NOT NULL AND group_id = 'grp_hertz' ORDER BY 1",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Model",
+        "multi": false,
+        "name": "model",
+        "query": "SELECT DISTINCT model FROM forecast_data WHERE hailprob IS NOT NULL AND group_id = 'grp_hertz' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "Hertz Local Edition \u2013 Pueblo North",
+          "value": "Pueblo North"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT f.locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text, COALESCE((g.metadata->'display_order'->>f.locname)::int, 999) AS __order FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.hailprob IS NOT NULL AND f.group_id = 'grp_hertz' AND f.locname = 'Pueblo North' ORDER BY COALESCE((g.metadata->'display_order'->>f.locname)::int, 999), 2",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Location",
+        "multi": false,
+        "name": "location",
+        "query": "SELECT DISTINCT f.locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text, COALESCE((g.metadata->'display_order'->>f.locname)::int, 999) AS __order FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.hailprob IS NOT NULL AND f.group_id = 'grp_hertz' AND f.locname = 'Pueblo North' ORDER BY COALESCE((g.metadata->'display_order'->>f.locname)::int, 999), 2",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "America/Denver",
+          "value": "America/Denver"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT 'America/Denver'",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Location Timezone",
+        "multi": false,
+        "name": "location_tz",
+        "options": [],
+        "query": "SELECT 'America/Denver'",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '0 days', 'Dy Mon DD')",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Day 1 Label",
+        "multi": false,
+        "name": "day1_label",
+        "options": [],
+        "query": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '0 days', 'Dy Mon DD')",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '1 days', 'Dy Mon DD')",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Day 2 Label",
+        "multi": false,
+        "name": "day2_label",
+        "options": [],
+        "query": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '1 days', 'Dy Mon DD')",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '2 days', 'Dy Mon DD')",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Day 3 Label",
+        "multi": false,
+        "name": "day3_label",
+        "options": [],
+        "query": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '2 days', 'Dy Mon DD')",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '3 days', 'Dy Mon DD')",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Day 4 Label",
+        "multi": false,
+        "name": "day4_label",
+        "options": [],
+        "query": "SELECT to_char(date_trunc('day', NOW() AT TIME ZONE '$location_tz') + INTERVAL '3 days', 'Dy Mon DD')",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE hailprob IS NOT NULL AND locname = '$location' AND group_id = 'grp_hertz' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Data Time",
+        "multi": false,
+        "name": "data_time",
+        "options": [],
+        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE hailprob IS NOT NULL AND locname = '$location' AND group_id = 'grp_hertz' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now",
+    "to": "now+24h"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "utc",
+  "title": "Hertz Forecasts \u2014 Hail Forecast",
+  "weekStart": ""
+}

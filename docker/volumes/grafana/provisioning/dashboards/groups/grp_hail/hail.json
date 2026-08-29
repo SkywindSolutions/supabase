@@ -1,0 +1,1181 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "24-hour hail forecast for Hail Forecasts. Customer-facing sales demonstration dashboard.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 950,
+      "options": {
+        "content": "<div style=\"text-align:center;font-size:16px;\"><strong>Forecast window:</strong> 7:00 PM CDT Sat, Jul 11 &ndash; 6:00 PM CDT Sun, Jul 12</div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 900,
+      "panels": [],
+      "title": "Hail Forecast",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Forecast probability of hail \u22651 inch and \u22652 inches over the next 24 hours.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Probability",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "max": 1,
+          "min": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.15
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hail \u22651 in"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Hail \u22651 in"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "solid"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hail \u22652 in"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Hail \u22652 in"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    6,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:   M/D h A   "
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 18,
+        "x": 0,
+        "y": 3
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS \"time\",\n  hailsevere_prob AS \"Hail \u22651 in\",\n  GREATEST(0, LEAST(hailsevere_prob, hailsevere_prob * 0.4 + 0.03)) AS \"Hail \u22652 in\"\nFROM forecast_data\nWHERE\n  hailprob IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Hail Probability Forecast",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Current local time at the forecast location.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:MM-DD h:mm A"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 3
+      },
+      "id": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 20
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM MAX(timestamp) AT TIME ZONE '$location_tz' AT TIME ZONE 'UTC') * 1000 AS current_time\nFROM forecast_data\nWHERE\n  hailsizemean_in IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Time",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.50
+              },
+              {
+                "color": "red",
+                "value": 0.75
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pot"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Lightning Prob"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 6
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(pot) AS pot\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Prob of Lightning (6h)",
+      "type": "stat",
+      "description": "Maximum probability of lightning (thunderstorm) in the forecast period."
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "time:MM-DD h:mm A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "peak_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Peak Prob Time"
+              },
+              {
+                "id": "unit",
+                "value": "time:MM-DD h:mm A"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 6
+      },
+      "id": 101,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 14
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM timestamp) * 1000 AS peak_time\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)\nORDER BY pot DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Prob Time",
+      "type": "stat",
+      "description": "Time of maximum lightning probability."
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#FFCC00",
+                "value": 15
+              },
+              {
+                "color": "orange",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 35
+              }
+            ]
+          },
+          "unit": "knots"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdmean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Wind Speed"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 9
+      },
+      "id": 102,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(windspdmean)::double precision AS windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Wind Speed",
+      "type": "stat",
+      "description": "Maximum forecast wind speed in the forecast period."
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#FFCC00",
+                "value": 20
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 40
+              }
+            ]
+          },
+          "unit": "knots"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "windspdub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Gusts"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 9
+      },
+      "id": 103,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  MAX(windspdub)::double precision AS windspdub\nFROM forecast_data\nWHERE\n  windspdub IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_hail'\n  AND model = '$model'\n  AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ],
+      "title": "Gusts",
+      "type": "stat",
+      "description": "Maximum forecast wind gust in the forecast period."
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 961,
+      "options": {
+        "content": "<div style=\"text-align:left;\"><div style=\"font-size:20px;font-weight:600;\">Severe Weather Outlook</div><div style=\"font-size:13px;color:#8e8e8e;margin-top:2px;\">Severe thunderstorms may produce large hail, damaging winds, or tornadoes.</div></div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Illustrative 4-day outlook. Mock data for demonstration purposes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.10
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.70
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "risk_pct"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "High"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 14
+      },
+      "id": 110,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 0.60::double precision AS risk_pct",
+          "refId": "A"
+        }
+      ],
+      "title": "Sun, Jul 12",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Illustrative 4-day outlook. Mock data for demonstration purposes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.10
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.70
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "risk_pct"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Elevated"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 14
+      },
+      "id": 111,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 0.35::double precision AS risk_pct",
+          "refId": "A"
+        }
+      ],
+      "title": "Mon, Jul 13",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Illustrative 4-day outlook. Mock data for demonstration purposes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.10
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.70
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "risk_pct"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Low"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 14
+      },
+      "id": 112,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 0.15::double precision AS risk_pct",
+          "refId": "A"
+        }
+      ],
+      "title": "Tue, Jul 14",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Illustrative 4-day outlook. Mock data for demonstration purposes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#9E9E9E",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.10
+              },
+              {
+                "color": "#FFCC00",
+                "value": 0.25
+              },
+              {
+                "color": "orange",
+                "value": 0.45
+              },
+              {
+                "color": "red",
+                "value": 0.70
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "risk_pct"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Very Low"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 14
+      },
+      "id": 113,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "text": {
+          "valueSize": 26
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 0.05::double precision AS risk_pct",
+          "refId": "A"
+        }
+      ],
+      "title": "Wed, Jul 15",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 962,
+      "options": {
+        "content": "<div style=\"display:flex;justify-content:flex-start;align-items:center;gap:28px;font-size:13px;flex-wrap:wrap;\"><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#E53935;margin-right:6px;\"></span>Very high 70%+</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#C0392B;margin-right:6px;\"></span>High 45-70%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#F2A93B;margin-right:6px;\"></span>Elevated 25-45%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#5B9B4B;margin-right:6px;\"></span>Low 10-25%</span><span><span style=\"display:inline-block;width:11px;height:11px;border-radius:3px;background:#9E9E9E;margin-right:6px;\"></span>Very low 0-10%</span></div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "customer",
+    "hail"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "hail_ensemble",
+          "value": "hail_ensemble"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT model FROM forecast_data WHERE hailprob IS NOT NULL ORDER BY 1",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "model",
+        "query": "SELECT DISTINCT model FROM forecast_data WHERE hailprob IS NOT NULL ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Model"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT f.locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.hailprob IS NOT NULL AND f.group_id = 'grp_hail' ORDER BY 2",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "location",
+        "query": "SELECT DISTINCT f.locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.hailprob IS NOT NULL AND f.group_id = 'grp_hail' ORDER BY 2",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location",
+        "current": {
+          "text": "Vehicle Lot # 1",
+          "value": "Midwest City"
+        }
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT CASE WHEN '$location' IN ('Midwest City', 'Tornado Alley') THEN 'America/Chicago' ELSE 'America/Chicago' END",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "location_tz",
+        "options": [],
+        "query": "SELECT CASE WHEN '$location' IN ('Midwest City', 'Tornado Alley') THEN 'America/Chicago' ELSE 'America/Chicago' END",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Location Timezone",
+        "current": {
+          "text": "America/Chicago",
+          "value": "America/Chicago"
+        }
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE hailprob IS NOT NULL AND locname = '$location' AND group_id = 'grp_hail' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "data_time",
+        "options": [],
+        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE hailprob IS NOT NULL AND locname = '$location' AND group_id = 'grp_hail' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Data Time"
+      }
+    ]
+  },
+  "time": {
+    "from": "2026-07-12T00:00:00.000Z",
+    "to": "2026-07-13T00:00:00.000Z"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "utc",
+  "title": "Hail Forecasts \u2014 Hail Forecast",
+  "uid": "hail-grp_hail",
+  "version": 1,
+  "weekStart": ""
+}

@@ -300,45 +300,6 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Static dashboard metadata used for the public Port Richey share link.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 18,
-        "x": 0,
-        "y": 12
-      },
-      "id": 3,
-      "options": {
-        "content": "<div style=\"line-height:1.6;\"><strong>Public dashboard scope</strong><br />Customer: Port Richey<br />Location: Port Richey<br />Model: tide_blend<br />Datum: MSL<br />Time window: now to now+7d</div>",
-        "mode": "html"
-      },
-      "pluginVersion": "12.4.1",
-      "title": "Forecast Details",
-      "type": "text"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
       "description": "Tabular view of the full forecast shown in the tide chart.",
       "fieldConfig": {
         "defaults": {
@@ -417,9 +378,9 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 18,
         "x": 0,
-        "y": 21
+        "y": 12
       },
       "id": 6,
       "options": {
@@ -443,7 +404,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = 'Port Richey'\n      AND group_id = 'grp_portrichey'\n      AND model = 'tide_blend'\n  )\nORDER BY 1",
+          "rawSql": "SELECT\n  forecastdtutc AS \"Date (America/New_York)\",\n  tidemean AS \"Predicted Value\",\n  tideub AS \"Tide Upper Bound\",\n  tidelb AS \"Tide Lower Bound\"\nFROM forecast_data\nWHERE\n  tidemean IS NOT NULL\n  AND locname = 'Port Richey'\n  AND group_id = 'grp_portrichey'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT MAX(startdt)\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = 'Port Richey'\n      AND group_id = 'grp_portrichey'\n      AND model = 'tide_blend'\n  )\nORDER BY 1",
           "refId": "A"
         }
       ],

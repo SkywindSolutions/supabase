@@ -1,0 +1,7 @@
+# Requirements for tropical cyclone fetching and dashboard management
+# Install with: pip install -r requirements-tropical-cyclone.txt
+#
+# These scripts are designed to work with Python 3 stdlib where possible,
+# but psycopg2 is required for database access.
+
+psycopg2-binary>=2.9

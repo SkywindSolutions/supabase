@@ -1,0 +1,173 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Hertz Customer Dashboard Home. Select a forecast dashboard to view.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 900,
+      "panels": [],
+      "title": "Hertz Forecasts",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 100,
+      "options": {
+        "content": "<div style=\"text-align:center;padding:20px 0;\">\n  <div style=\"font-size:36px;font-weight:600;\">Welcome, Hertz</div>\n  <div style=\"font-size:20px;margin-top:10px;\">Select a forecast dashboard below to get started.</div>\n</div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 10,
+        "x": 2,
+        "y": 4
+      },
+      "id": 1,
+      "options": {
+        "content": "<a href=\"/d/hail-grp_hertz/?kiosk\" style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-decoration:none;border:1px solid rgba(128,128,128,0.35);border-radius:8px;background:rgba(128,128,128,0.08);padding:24px;text-align:center;\">\n  <div style=\"font-size:30px;font-weight:600;margin-bottom:12px;\">Hail</div>\n  <div style=\"font-size:20px;\">Hertz Local Edition \u2013 Pueblo North</div>\n</a>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 10,
+        "x": 12,
+        "y": 4
+      },
+      "id": 2,
+      "options": {
+        "content": "<a href=\"/d/wind_tide-grp_hertz/?kiosk\" style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-decoration:none;border:1px solid rgba(128,128,128,0.35);border-radius:8px;background:rgba(128,128,128,0.08);padding:24px;text-align:center;\">\n  <div style=\"font-size:30px;font-weight:600;margin-bottom:12px;\">Wind + Tide</div>\n  <div style=\"font-size:20px;\">Tampa &amp; New Orleans Maintenance/Fleet Facilities</div>\n</a>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "customer",
+    "hertz",
+    "home"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "",
+  "title": "Hertz Forecasts",
+  "uid": "home-grp_hertz",
+  "version": 1,
+  "weekStart": ""
+}

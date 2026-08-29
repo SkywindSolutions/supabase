@@ -50,6 +50,18 @@ providers:
   # provisioned and will not appear in the Grafana folder.
   # ----------------------------------------------------------------
 
+  # Carnival Forecasts (tide, tide_wind, wind)
+  - name: Carnival Forecasts
+    orgId: 1
+    folder: Carnival Forecasts
+    folderUid: cust-grp-carnival
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_carnival
+
   # Chatham Forecasts (tide)
   - name: Chatham Forecasts
     orgId: 1
@@ -85,6 +97,18 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_corpuschristi
+
+  # Lake Worth Forecasts (tide)
+  - name: Lake Worth Forecasts
+    orgId: 1
+    folder: Lake Worth Forecasts
+    folderUid: cust-grp-lakeWorth
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_lakeWorth
 
   # Mobile Bay Forecasts (visibility, wind, wind_visibility)
   - name: Mobile Bay Forecasts
@@ -122,6 +146,18 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_pascagoula
 
+  # Penobscot Forecasts (wind, tide, wind_tide)
+  - name: Penobscot Forecasts
+    orgId: 1
+    folder: Penobscot Forecasts
+    folderUid: cust-grp-penobscot
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_penobscot
+
   # Port Richey Forecasts (tide)
   - name: Port Richey Forecasts
     orgId: 1
@@ -146,30 +182,6 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_sendero
 
-  # Carnival Forecasts (tide, tide_wind, wind)
-  - name: Carnival Forecasts
-    orgId: 1
-    folder: Carnival Forecasts
-    folderUid: cust-grp-carnival
-    type: file
-    disableDeletion: false
-    editable: false
-    updateIntervalSeconds: 30
-    options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_carnival
-
-  # Lake Worth Forecasts (tide)
-  - name: Lake Worth Forecasts
-    orgId: 1
-    folder: Lake Worth Forecasts
-    folderUid: cust-grp-lakeWorth
-    type: file
-    disableDeletion: false
-    editable: false
-    updateIntervalSeconds: 30
-    options:
-      path: /etc/grafana/provisioning/dashboards/groups/grp_lakeWorth
-
   # SSA Marine Forecasts (tide, tide_wind, wind)
   - name: SSA Marine Forecasts
     orgId: 1
@@ -181,3 +193,51 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/groups/grp_ssamarine
+
+  # Hail Forecasts (hail demo)
+  - name: Hail Forecasts
+    orgId: 1
+    folder: Hail Forecasts
+    folderUid: cust-grp-hail
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_hail
+
+  # Hertz Forecasts (hail, wind, tide)
+  - name: Hertz Forecasts
+    orgId: 1
+    folder: Hertz Forecasts
+    folderUid: cust-grp-hertz
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_hertz
+
+  # Gator Forecasts (tide, wind)
+  - name: Gator Forecasts
+    orgId: 1
+    folder: Gator Forecasts
+    folderUid: cust-grp-gator
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_gator
+
+  # Manson Forecasts (wind, tide, wind_tide)
+  - name: Manson Forecasts
+    orgId: 1
+    folder: Manson Forecasts
+    folderUid: cust-grp-manson
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/groups/grp_manson

@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Internal dashboard showing customer account access and login statistics for ACTIVE customer accounts only (deactivated accounts are excluded via public.customer_account_status). Tracks how often each customer group accesses their dashboards. Data sourced from grafana_access_log table (populated by sync_grafana_activity.py).",
+  "description": "Internal dashboard showing public dashboard access statistics. Tracks views, unique visitors, and usage patterns for unauthenticated public dashboards. Data sourced from public_dashboard_access_log table (populated by sync_public_dashboard_activity.py).",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -40,7 +40,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Number of distinct customer accounts that were active in the selected time range.",
+      "description": "Total number of public dashboard page views in the selected time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -50,16 +50,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "blue",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "green",
-                "value": 3
               }
             ]
           }
@@ -98,11 +90,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(DISTINCT grafana_login) AS \"Active Accounts\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false);",
+          "rawSql": "SELECT COUNT(*) AS \"Total Views\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200;",
           "refId": "A"
         }
       ],
-      "title": "Active Customer Accounts",
+      "title": "Total Views",
       "type": "stat"
     },
     {
@@ -110,7 +102,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Total number of recorded access events (sessions) in the selected time range.",
+      "description": "Approximate number of unique visitors in the selected time range. Based on privacy-preserving hash of IP + User-Agent (not cookies).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -120,7 +112,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": null
               }
             ]
@@ -160,11 +152,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS \"Total Access Events\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false);",
+          "rawSql": "SELECT COUNT(DISTINCT visitor_hash) AS \"Unique Visitors (approx)\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200\n  AND visitor_hash IS NOT NULL;",
           "refId": "A"
         }
       ],
-      "title": "Total Access Events",
+      "title": "Unique Visitors (approx)",
       "type": "stat"
     },
     {
@@ -172,7 +164,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Average number of access events per active customer account in the selected time range.",
+      "description": "Average number of daily views in the selected time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -223,11 +215,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT grafana_login), 0), 1) AS \"Avg Events per Account\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false);",
+          "rawSql": "SELECT ROUND(\n  COUNT(*)::numeric /\n  NULLIF(\n    EXTRACT(DAY FROM $__to - $__from)::numeric + 1,\n    0\n  ),\n  1\n) AS \"Avg Views per Day\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200;",
           "refId": "A"
         }
       ],
-      "title": "Avg Events per Account",
+      "title": "Avg Views per Day",
       "type": "stat"
     },
     {
@@ -235,7 +227,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Number of internal team access events in the selected time range.",
+      "description": "Number of distinct public dashboards that received views in the selected time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -285,11 +277,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS \"Internal Access Events\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND (grafana_login LIKE 'test_%' OR grafana_login IN ('dan', 'matt'));",
+          "rawSql": "SELECT COUNT(DISTINCT dashboard_slug) AS \"Dashboards Tracked\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at);",
           "refId": "A"
         }
       ],
-      "title": "Internal Team Events",
+      "title": "Dashboards Tracked",
       "type": "stat"
     },
     {
@@ -309,7 +301,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Customer access events over time, grouped by account. Each point represents detected activity in that time bucket.",
+      "description": "Public dashboard views over time, grouped by dashboard. Each bar represents views detected in that time bucket.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -319,7 +311,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Access Events",
+            "axisLabel": "Views",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -391,11 +383,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH date_series AS (\n  SELECT generate_series(\n    date_trunc('day', $__timeFrom()::timestamptz),\n    date_trunc('day', $__timeTo()::timestamptz),\n    '1 day'::interval\n  ) AS time\n),\ncustomer_accounts AS (\n  SELECT DISTINCT grafana_login\n  FROM public.grafana_access_log\n  WHERE $__timeFilter(recorded_at)\n    AND grafana_login NOT LIKE 'test_%'\n    AND grafana_login NOT IN ('dan', 'matt')\n    AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\n)\nSELECT\n  ds.time,\n  INITCAP(REPLACE(REPLACE(ca.grafana_login, 'test_', ''), '_', ' ')) AS metric,\n  COUNT(log.id) AS value\nFROM date_series ds\nCROSS JOIN customer_accounts ca\nLEFT JOIN public.grafana_access_log log\n  ON log.recorded_at >= ds.time\n  AND log.recorded_at < ds.time + INTERVAL '1 day'\n  AND log.grafana_login = ca.grafana_login\nGROUP BY 1, 2\nORDER BY 1, 2;",
+          "rawSql": "SELECT\n  $__timeGroupAlias(accessed_at, '1d'),\n  dashboard_slug AS metric,\n  COUNT(*) AS value\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200\nGROUP BY 1, 2\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Customer Access Over Time",
+      "title": "Views Over Time",
       "type": "timeseries"
     },
     {
@@ -407,7 +399,7 @@
         "y": 16
       },
       "id": 102,
-      "title": "Per-Account Details",
+      "title": "Per-Dashboard Details",
       "type": "row"
     },
     {
@@ -415,7 +407,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Detailed per-account access statistics including last seen time, total events, and recent activity counts.",
+      "description": "Detailed per-dashboard access statistics including total views, unique visitors, first and last access times.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -459,38 +451,23 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Last 24h"
+              "options": "First Seen"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background"
-                }
+                "id": "unit",
+                "value": "dateTimeAsIso"
               },
               {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "transparent",
-                      "value": null
-                    },
-                    {
-                      "color": "dark-green",
-                      "value": 1
-                    }
-                  ]
-                }
+                "id": "custom.width",
+                "value": 180
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Last 7d"
+              "options": "Views"
             },
             "properties": [
               {
@@ -498,22 +475,6 @@
                 "value": {
                   "mode": "gradient",
                   "type": "color-background"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "transparent",
-                      "value": null
-                    },
-                    {
-                      "color": "dark-blue",
-                      "value": 1
-                    }
-                  ]
                 }
               }
             ]
@@ -521,7 +482,7 @@
         ]
       },
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 24,
         "x": 0,
         "y": 17
@@ -554,11 +515,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  INITCAP(REPLACE(REPLACE(a.grafana_login, 'test_', ''), '_', ' ')) AS \"Account\",\n  CASE WHEN a.grafana_login = 'port_richey' THEN 'grp_portrichey'\n       WHEN a.grafana_login = 'corpus_christi' THEN 'grp_corpuschristi'\n       ELSE 'grp_' || REPLACE(a.grafana_login, 'test_', '')\n  END AS \"Group ID\",\n  MAX(a.last_seen_at) AS \"Last Seen\",\n  COUNT(*) FILTER (WHERE a.recorded_at >= now() - INTERVAL '24 hours') AS \"Last 24h\",\n  COUNT(*) FILTER (WHERE a.recorded_at >= now() - INTERVAL '7 days') AS \"Last 7d\",\n  COUNT(*) FILTER (WHERE a.recorded_at >= now() - INTERVAL '30 days') AS \"Last 30d\",\n  COUNT(*) AS \"Total Events\",\n  MIN(a.recorded_at) AS \"First Seen\"\nFROM public.grafana_access_log a\nWHERE a.grafana_login NOT LIKE 'test_%'\n  AND a.grafana_login NOT IN ('dan', 'matt')\n  AND a.grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\nGROUP BY a.grafana_login\nORDER BY MAX(a.last_seen_at) DESC;",
+          "rawSql": "SELECT\n  dashboard_slug AS \"Dashboard\",\n  COUNT(*) AS \"Views\",\n  COUNT(DISTINCT visitor_hash) FILTER (WHERE visitor_hash IS NOT NULL) AS \"Unique Visitors\",\n  MAX(accessed_at) AS \"Last Seen\",\n  MIN(accessed_at) AS \"First Seen\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200\nGROUP BY dashboard_slug\nORDER BY MAX(accessed_at) DESC;",
           "refId": "A"
         }
       ],
-      "title": "Account Activity Summary",
+      "title": "Dashboard Summary",
       "type": "table"
     },
     {
@@ -567,10 +528,10 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 24
       },
       "id": 103,
-      "title": "Group Analysis",
+      "title": "Usage Patterns",
       "type": "row"
     },
     {
@@ -578,7 +539,7 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Total access events per customer group in the selected time range.",
+      "description": "Distribution of public dashboard views by day of week.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -586,83 +547,7 @@
           },
           "custom": {
             "axisBorderShow": false,
-            "axisLabel": "Access Events",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "hue",
-            "scaleDistribution": {
-              "type": "linear"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 27
-      },
-      "id": 7,
-      "options": {
-        "barRadius": 0.1,
-        "barWidth": 0.6,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "orientation": "horizontal",
-        "showValue": "always",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "supabase-postgres"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  INITCAP(REPLACE(REPLACE(grafana_login, 'test_', ''), '_', ' ')) AS \"Customer Group\",\n  COUNT(*) AS \"Access Events\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\nGROUP BY grafana_login\nORDER BY COUNT(*) DESC;",
-          "refId": "A"
-        }
-      ],
-      "title": "Access Events by Customer Group",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "postgres",
-        "uid": "supabase-postgres"
-      },
-      "description": "Distribution of customer access events by day of week in the selected time range. Helps identify patterns in when customers check their dashboards.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisLabel": "Access Events",
+            "axisLabel": "Views",
             "axisPlacement": "auto",
             "fillOpacity": 80,
             "gradientMode": "scheme",
@@ -685,10 +570,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 27
+        "x": 0,
+        "y": 25
       },
-      "id": 8,
+      "id": 7,
       "options": {
         "barRadius": 0.1,
         "barWidth": 0.6,
@@ -718,31 +603,19 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  TO_CHAR(recorded_at, 'Dy') AS \"Day\",\n  COUNT(*) AS \"Events\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\nGROUP BY EXTRACT(DOW FROM recorded_at), TO_CHAR(recorded_at, 'Dy')\nORDER BY EXTRACT(DOW FROM recorded_at);",
+          "rawSql": "SELECT\n  TO_CHAR(accessed_at, 'Dy') AS \"Day\",\n  COUNT(*) AS \"Views\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200\nGROUP BY EXTRACT(DOW FROM accessed_at), TO_CHAR(accessed_at, 'Dy')\nORDER BY EXTRACT(DOW FROM accessed_at);",
           "refId": "A"
         }
       ],
-      "title": "Access by Day of Week",
+      "title": "Views by Day of Week",
       "type": "barchart"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 35
-      },
-      "id": 104,
-      "title": "Activity Heatmap & Trends",
-      "type": "row"
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Hour-of-day distribution shows when customers are most active. Useful for scheduling maintenance windows.",
+      "description": "Distribution of public dashboard views by hour of day.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -750,7 +623,7 @@
           },
           "custom": {
             "axisBorderShow": false,
-            "axisLabel": "Access Events",
+            "axisLabel": "Views",
             "axisPlacement": "auto",
             "fillOpacity": 80,
             "gradientMode": "scheme",
@@ -773,10 +646,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 36
+        "x": 12,
+        "y": 25
       },
-      "id": 9,
+      "id": 8,
       "options": {
         "barRadius": 0.1,
         "barWidth": 0.5,
@@ -806,19 +679,31 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  LPAD(EXTRACT(HOUR FROM recorded_at)::text, 2, '0') || ':00' AS \"Hour (UTC)\",\n  COUNT(*) AS \"Events\"\nFROM public.grafana_access_log\nWHERE $__timeFilter(recorded_at)\n  AND grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\nGROUP BY EXTRACT(HOUR FROM recorded_at)\nORDER BY EXTRACT(HOUR FROM recorded_at);",
+          "rawSql": "SELECT\n  LPAD(EXTRACT(HOUR FROM accessed_at)::text, 2, '0') || ':00' AS \"Hour (UTC)\",\n  COUNT(*) AS \"Views\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\n  AND status_code = 200\nGROUP BY EXTRACT(HOUR FROM accessed_at)\nORDER BY EXTRACT(HOUR FROM accessed_at);",
           "refId": "A"
         }
       ],
-      "title": "Access by Hour of Day (UTC)",
+      "title": "Views by Hour of Day (UTC)",
       "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 104,
+      "title": "Recent Activity",
+      "type": "row"
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Accounts that have not been seen in the last 7 days. May indicate inactive customers or access issues.",
+      "description": "Most recent public dashboard access events.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -829,7 +714,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false,
+            "filterable": true,
             "inspect": false
           },
           "thresholds": {
@@ -846,7 +731,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Last Seen"
+              "options": "Accessed At"
             },
             "properties": [
               {
@@ -862,58 +747,50 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Days Inactive"
+              "options": "User Agent"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background"
-                }
-              },
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Referrer"
+            },
+            "properties": [
               {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "yellow",
-                      "value": null
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
-                    },
-                    {
-                      "color": "red",
-                      "value": 30
-                    }
-                  ]
-                }
+                "id": "custom.width",
+                "value": 200
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 36
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 34
       },
-      "id": 10,
+      "id": 9,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
-          "enablePagination": false
+          "enablePagination": true,
+          "reducer": [
+            "sum"
+          ]
         },
         "showHeader": true,
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Days Inactive"
+            "displayName": "Accessed At"
           }
         ]
       },
@@ -927,62 +804,26 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  INITCAP(REPLACE(REPLACE(grafana_login, 'test_', ''), '_', ' ')) AS \"Account\",\n  MAX(last_seen_at) AS \"Last Seen\",\n  EXTRACT(DAY FROM now() - MAX(last_seen_at))::integer AS \"Days Inactive\"\nFROM public.grafana_access_log\nWHERE grafana_login NOT LIKE 'test_%'\n  AND grafana_login NOT IN ('dan', 'matt')\n  AND grafana_login NOT IN (SELECT grafana_login FROM public.customer_account_status WHERE is_active = false)\nGROUP BY grafana_login\nHAVING MAX(last_seen_at) < now() - INTERVAL '7 days'\nORDER BY MAX(last_seen_at) ASC;",
+          "rawSql": "SELECT\n  accessed_at AS \"Accessed At\",\n  dashboard_slug AS \"Dashboard\",\n  status_code AS \"Status\",\n  user_agent AS \"User Agent\",\n  referrer AS \"Referrer\"\nFROM public.public_dashboard_access_log\nWHERE $__timeFilter(accessed_at)\nORDER BY accessed_at DESC\nLIMIT 100;",
           "refId": "A"
         }
       ],
-      "title": "Inactive Accounts (>7 days)",
+      "title": "Recent Access Log",
       "type": "table"
     }
   ],
+  "refresh": "5m",
   "schemaVersion": 40,
   "tags": [
     "internal",
-    "access",
-    "customers"
+    "public-dashboards",
+    "access"
   ],
   "templating": {
-    "list": [
-      {
-        "current": {
-          "selected": false,
-          "text": "1d",
-          "value": "1d"
-        },
-        "hide": 0,
-        "includeAll": false,
-        "label": "Granularity",
-        "multi": false,
-        "name": "granularity",
-        "options": [
-          {
-            "selected": false,
-            "text": "1h",
-            "value": "1h"
-          },
-          {
-            "selected": true,
-            "text": "1d",
-            "value": "1d"
-          },
-          {
-            "selected": false,
-            "text": "7d",
-            "value": "7d"
-          },
-          {
-            "selected": false,
-            "text": "30d",
-            "value": "30d"
-          }
-        ],
-        "query": "1h, 1d, 7d, 30d",
-        "type": "custom"
-      }
-    ]
+    "list": []
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -997,7 +838,7 @@
     ]
   },
   "timezone": "utc",
-  "title": "Customer Access Statistics",
-  "uid": "internal-customer-access-stats",
-  "version": 2
+  "title": "Public Dashboard Access Statistics",
+  "uid": "internal-public-dashboard-stats",
+  "version": 1
 }

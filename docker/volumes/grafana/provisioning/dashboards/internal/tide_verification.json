@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -24,28 +27,79 @@
       "id": 100,
       "title": "Per-model summary ($__timeFilter)",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "panels": []
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "id": 1,
       "title": "Verification metrics by model",
-      "description": "Bias = AVG(forecast − observed); MAE = AVG(|err|); RMSE = sqrt(AVG(err²)); In-env = fraction of observations inside the ensemble bounds.",
+      "description": "Bias = AVG(forecast \u2212 observed); MAE = AVG(|err|); RMSE = sqrt(AVG(err\u00b2)); In-env = fraction of observations inside the ensemble bounds.",
       "type": "table",
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
       "fieldConfig": {
-        "defaults": { "custom": { "align": "auto", "displayMode": "auto" }, "unit": "none", "decimals": 4 },
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "unit": "none",
+          "decimals": 4
+        },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "N" }, "properties": [ { "id": "decimals", "value": 0 } ] },
-          { "matcher": { "id": "byName", "options": "In-envelope" }, "properties": [ { "id": "unit", "value": "percentunit" }, { "id": "decimals", "value": 1 } ] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "N"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In-envelope"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
         ]
       },
-      "options": { "showHeader": true },
+      "options": {
+        "showHeader": true
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT model AS \"Model\",\n       COUNT(*)                              AS \"N\",\n       AVG(error)                            AS \"Bias (ft)\",\n       AVG(ABS(error))                       AS \"MAE (ft)\",\n       SQRT(AVG(error*error))                AS \"RMSE (ft)\",\n       AVG(in_envelope::float) FILTER (WHERE forecast_lb IS NOT NULL) AS \"In-envelope\"\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")\nGROUP BY model\nORDER BY model"
@@ -53,24 +107,52 @@
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "id": 2,
       "title": "Daily MAE by model",
       "type": "timeseries",
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "pointSize": 5, "showPoints": "auto", "axisLabel": "MAE (ft)" },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "MAE (ft)"
+          },
           "unit": "lengthft"
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "time_series",
           "rawQuery": true,
           "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       model AS metric,\n       AVG(ABS(error)) AS mae\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2\nORDER BY 1, 2"
@@ -78,24 +160,52 @@
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "id": 3,
       "title": "Daily Bias by model",
       "type": "timeseries",
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 8 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "pointSize": 5, "showPoints": "auto", "axisLabel": "Bias (ft)" },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "axisLabel": "Bias (ft)"
+          },
           "unit": "lengthft"
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "time_series",
           "rawQuery": true,
           "rawSql": "SELECT date_trunc('day', \"timestamp\") AS \"time\",\n       model AS metric,\n       AVG(error) AS bias\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2\nORDER BY 1, 2"
@@ -103,20 +213,46 @@
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "id": 4,
-      "title": "MAE by lead-time bucket — $model",
+      "title": "MAE by lead-time bucket \u2014 $model",
       "type": "barchart",
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
       "fieldConfig": {
-        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisLabel": "MAE (ft)" }, "unit": "lengthft" },
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "MAE (ft)"
+          },
+          "unit": "lengthft"
+        },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "orientation": "auto", "xField": "lead_bucket" },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "xField": "lead_bucket"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT lead_bucket,\n       AVG(ABS(error))::float AS mae\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND model = '$model'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY lead_bucket\nORDER BY CASE lead_bucket WHEN 'astro' THEN -1 WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END"
@@ -124,36 +260,69 @@
       ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
       "id": 5,
-      "title": "Forecast vs Observed (scatter) — $model",
+      "title": "Forecast vs Observed (scatter) \u2014 $model",
       "description": "Each point is a matched (forecast, observation) pair for the selected model. Perfect forecasts fall on the y=x diagonal.",
       "type": "xychart",
       "pluginVersion": "11.4.0",
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 17 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisPlacement": "auto",
             "fillOpacity": 50,
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineWidth": 1,
             "pointShape": "circle",
-            "pointSize": { "fixed": 5 },
+            "pointSize": {
+              "fixed": 5
+            },
             "pointStrokeWidth": 1,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "show": "points"
           },
           "unit": "lengthft"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "identity_y" },
+            "matcher": {
+              "id": "byName",
+              "options": "identity_y"
+            },
             "properties": [
-              { "id": "custom.show", "value": "lines" },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } }
+              {
+                "id": "custom.show",
+                "value": "lines"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "gray"
+                }
+              }
             ]
           }
         ]
@@ -162,47 +331,106 @@
         "mapping": "manual",
         "series": [
           {
-            "name": { "fixed": "Forecast vs Observed" },
-            "frame": { "matcher": { "id": "byIndex", "options": 0 } },
-            "x": { "matcher": { "id": "byName", "options": "observed_value" } },
-            "y": { "matcher": { "id": "byName", "options": "forecast_value" } }
+            "name": {
+              "fixed": "Forecast vs Observed"
+            },
+            "frame": {
+              "matcher": {
+                "id": "byIndex",
+                "options": 0
+              }
+            },
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "observed_value"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "forecast_value"
+              }
+            }
           },
           {
-            "name": { "fixed": "1:1 line" },
-            "frame": { "matcher": { "id": "byIndex", "options": 1 } },
-            "x": { "matcher": { "id": "byName", "options": "identity_x" } },
-            "y": { "matcher": { "id": "byName", "options": "identity_y" } }
+            "name": {
+              "fixed": "1:1 line"
+            },
+            "frame": {
+              "matcher": {
+                "id": "byIndex",
+                "options": 1
+              }
+            },
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "identity_x"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "identity_y"
+              }
+            }
           }
         ],
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
-        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT observed_value, forecast_value\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND model = '$model'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
+          "rawSql": "SELECT observed_value_display, forecast_value_display\nFROM v_forecast_verification\nWHERE variable = 'tide'\n  AND model = '$model'\n  AND group_id = '$group'\n  AND locname = '$location'\n  AND lead_bucket IN ($lead_bucket)\n  AND $__timeFilter(\"timestamp\")"
         },
         {
           "refId": "B",
-          "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH r AS (\n  SELECT LEAST(MIN(observed_value), MIN(forecast_value)) AS mn,\n         GREATEST(MAX(observed_value), MAX(forecast_value)) AS mx\n  FROM v_forecast_verification\n  WHERE variable = 'tide'\n    AND model = '$model'\n    AND group_id = '$group'\n    AND locname = '$location'\n    AND lead_bucket IN ($lead_bucket)\n    AND $__timeFilter(\"timestamp\")\n)\nSELECT g::float AS identity_x, g::float AS identity_y\nFROM r, generate_series(r.mn::numeric, r.mx::numeric, GREATEST((r.mx - r.mn) / 100.0, 0.01)::numeric) g"
+          "rawSql": "WITH r AS (\n  SELECT LEAST(MIN(observed_value_display), MIN(forecast_value_display)) AS mn,\n         GREATEST(MAX(observed_value_display), MAX(forecast_value_display)) AS mx\n  FROM v_forecast_verification\n  WHERE variable = 'tide'\n    AND model = '$model'\n    AND group_id = '$group'\n    AND locname = '$location'\n    AND lead_bucket IN ($lead_bucket)\n    AND $__timeFilter(\"timestamp\")\n)\nSELECT g::float AS identity_x, g::float AS identity_y\nFROM r, generate_series(r.mn::numeric, r.mx::numeric, GREATEST((r.mx - r.mn) / 100.0, 0.01)::numeric) g"
         }
       ]
     }
   ],
   "refresh": "",
   "schemaVersion": 39,
-  "tags": [ "internal", "tide", "verification" ],
+  "tags": [
+    "internal",
+    "tide",
+    "verification"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "text": "grp_portrichey", "value": "grp_portrichey" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "grp_portrichey",
+          "value": "grp_portrichey"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT group_id FROM v_forecast_verification WHERE variable = 'tide' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -217,7 +445,10 @@
         "label": "Group"
       },
       {
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT locname FROM v_forecast_verification WHERE variable = 'tide' AND group_id = '$group' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -232,8 +463,14 @@
         "label": "Location"
       },
       {
-        "current": { "text": "tide_blend", "value": "tide_blend" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "tide_blend",
+          "value": "tide_blend"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT model FROM v_forecast_verification WHERE variable = 'tide' ORDER BY 1",
         "hide": 0,
         "includeAll": false,
@@ -248,8 +485,14 @@
         "label": "Model (lead-bucket / scatter panels)"
       },
       {
-        "current": { "text": "All", "value": "$__all" },
-        "datasource": { "type": "postgres", "uid": "supabase-postgres" },
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
         "definition": "SELECT DISTINCT lead_bucket FROM v_forecast_verification WHERE variable = 'tide' ORDER BY CASE lead_bucket WHEN 'astro' THEN -1 WHEN '0-6h' THEN 0 WHEN '6-12h' THEN 1 WHEN '12-24h' THEN 2 WHEN '24-48h' THEN 3 WHEN '48-72h' THEN 4 ELSE 5 END",
         "hide": 0,
         "includeAll": true,
@@ -266,7 +509,10 @@
       }
     ]
   },
-  "time": { "from": "now-30d", "to": "now" },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Tide Forecast Verification (Internal)",

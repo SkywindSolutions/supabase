@@ -30,6 +30,7 @@ services:
         caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     volumes:
       - ./volumes/proxy/caddy:/etc/caddy
+      - ./volumes/proxy/caddy/logs:/var/log/caddy
       - caddy_data:/data
       - caddy_config:/config
 

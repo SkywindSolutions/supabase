@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Wind & Tide forecast data \u2014 internal view. Select any customer group from the dropdown. Customer-facing dashboards should be used for external sharing.",
+  "description": "Wind, Tide, and Sea State forecast data for Penobscot Forecasts.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -41,7 +41,6 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Wind speed forecast with predicted wind direction on the right y-axis.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -471,19 +470,20 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH src AS (\n  SELECT\n    timestamp AS \"time\",\n    windspdmean,\n    windspdlb,\n    windspdub,\n    winddirmean\n  FROM forecast_data\n  WHERE\n    windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$wind_model'\n    AND '$wind_model' <> 'wind_nbm'\n    AND $__timeFilter(timestamp)\n  UNION ALL\n  SELECT\n    forecastdtutc AS \"time\",\n    windspdmean AS windspdmean,\n    windspdlb AS windspdlb,\n    windspdub AS windspdub,\n    winddirmean AS winddirmean\n  FROM forecast_data\n  WHERE\n    windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$wind_model'\n    AND '$wind_model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n    AND startdt = (\n      SELECT MAX(startdt)\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$wind_model'\n        AND height_m = ${height_m:raw}\n        AND windspdmean IS NOT NULL\n    )\n)\nSELECT\n  src.\"time\",\n  src.windspdmean,\n  src.windspdlb,\n  src.windspdub,\n  w.v1_s0 AS winddirmean,\n  w.v1_sm1 AS winddirmean_sm1,\n  w.v1_sp1 AS winddirmean_sp1,\n  (MOD(MOD(src.winddirmean::numeric, 360) + 360, 360))::float AS winddir_tooltip\nFROM src\nJOIN public.fn_wrap_directions(\n  (SELECT array_agg(\"time\" ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirmean ORDER BY \"time\") FROM src)\n) w USING (\"time\")\nORDER BY src.\"time\"",
+          "rawSql": "WITH src AS (\n  SELECT\n    forecastdtutc AS \"time\",\n    windspdmean,\n    windspdlb,\n    windspdub,\n    winddirmean\n  FROM forecast_data\n  WHERE\n    windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n    AND model = '$model'\n    AND '$model' = 'wind_nbm'\n    AND height_m = ${height_m:raw}\n      AND startdt = (\n      SELECT s.startdt FROM (\n        SELECT startdt\n        FROM forecast_data\n        WHERE startdt <= $__timeFrom()\n          AND locname = '$location'\n          AND group_id = 'grp_penobscot'\n          AND model = '$model'\n          AND height_m = ${height_m:raw}\n          AND windspdmean IS NOT NULL\n        ORDER BY startdt DESC\n        LIMIT 3\n      ) s\n      WHERE (\n        SELECT MAX(forecastdtutc) FROM forecast_data\n        WHERE group_id = 'grp_penobscot'\n          AND model = '$model'\n          AND locname = '$location'\n          AND startdt = s.startdt\n          AND height_m = ${height_m:raw}\n          AND windspdmean IS NOT NULL\n      ) >= $__timeTo()\n      ORDER BY s.startdt DESC\n      LIMIT 1\n    )\n)\nSELECT\n  src.\"time\",\n  src.windspdmean,\n  src.windspdlb,\n  src.windspdub,\n  w.v1_s0 AS winddirmean,\n  w.v1_sm1 AS winddirmean_sm1,\n  w.v1_sp1 AS winddirmean_sp1,\n  (MOD(MOD(src.winddirmean::numeric, 360) + 360, 360))::float AS winddir_tooltip\nFROM src\nJOIN public.fn_wrap_directions(\n  (SELECT array_agg(\"time\" ORDER BY \"time\") FROM src),\n  (SELECT array_agg(winddirmean ORDER BY \"time\") FROM src)\n) w USING (\"time\")\nORDER BY src.\"time\"",
           "refId": "A"
         }
       ],
-      "title": "Wind Forecast - UTC (${height_m} m)",
-      "type": "timeseries"
+      "title": "Wind Forecast - ${tz_abbrev} (${height_m} m)",
+      "type": "timeseries",
+      "description": "Wind speed forecast with predicted wind direction on the right y-axis."
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "UTC and forecast-location local time for the latest current-condition wind sample shown in the hero stat panels.",
+      "description": "Current UTC and forecast-location local time for the latest wind sample at this height.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -500,20 +500,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Current Time"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Current Time"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 3,
@@ -523,21 +510,16 @@
       },
       "id": 100,
       "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
           ],
-          "fields": "Current Time",
-          "values": false
+          "show": false
         },
-        "text": {
-          "valueSize": 24
-        },
-        "textMode": "value"
+        "showHeader": false
       },
       "targets": [
         {
@@ -548,19 +530,18 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH latest AS (\n  SELECT timestamp AS ts\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$wind_model'\n    AND (height_m IN (20, 60) OR height_m IS NULL)\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY timestamp DESC, startdt DESC NULLS LAST, CASE WHEN height_m = 20 OR height_m IS NULL THEN 0 ELSE 1 END\n  LIMIT 1\n)\nSELECT\n  to_char(ts AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI \"UTC\"')\n  || ' | '\n  || to_char(ts AT TIME ZONE '$location_tz', 'YYYY-MM-DD HH24:MI \"Local\"') AS \"Current Time\"\nFROM latest",
+          "rawSql": "WITH latest AS (\n  SELECT MAX(timestamp) AS ts\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n    AND model = '$model'\n    AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 10))\n    AND timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT 'UTC' AS \"Label\", to_char(ts AT TIME ZONE 'UTC', 'MM-DD HH24:MI') AS \"Time\"\nFROM latest\nWHERE ts IS NOT NULL\nUNION ALL\nSELECT 'Local' AS \"Label\", to_char(ts AT TIME ZONE '$location_tz', 'MM-DD HH24:MI') AS \"Time\"\nFROM latest\nWHERE ts IS NOT NULL",
           "refId": "A"
         }
       ],
       "title": "",
-      "type": "stat"
+      "type": "table"
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Most recent speed (${height_m} m).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -620,10 +601,10 @@
           "fields": "",
           "values": false
         },
+        "textMode": "value",
         "text": {
           "valueSize": 26
-        },
-        "textMode": "value"
+        }
       },
       "targets": [
         {
@@ -634,19 +615,19 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$wind_model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  windspdmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 10))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
       "title": "Speed (${height_m}m)",
-      "type": "stat"
+      "type": "stat",
+      "description": "Most recent speed (${height_m} m)."
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Most recent direction (${height_m} m).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -714,10 +695,10 @@
           "fields": "",
           "values": false
         },
+        "textMode": "value",
         "text": {
           "valueSize": 34
-        },
-        "textMode": "value"
+        }
       },
       "targets": [
         {
@@ -728,19 +709,19 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (MOD(MOD(winddirmean::numeric, 360) + 360, 360))::float AS winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$wind_model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  (MOD(MOD(winddirmean::numeric, 360) + 360, 360))::float AS winddirmean\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 10))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
       "title": "Direction (${height_m}m)",
-      "type": "stat"
+      "type": "stat",
+      "description": "Most recent direction (${height_m} m)."
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "Most recent gusts (${height_m} m).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -800,10 +781,10 @@
           "fields": "",
           "values": false
         },
+        "textMode": "value",
         "text": {
           "valueSize": 34
-        },
-        "textMode": "value"
+        }
       },
       "targets": [
         {
@@ -814,26 +795,25 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$wind_model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 20))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
+          "rawSql": "SELECT\n  windspdub\nFROM forecast_data\nWHERE\n  windspdmean IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = '$model'\n  AND (height_m = ${height_m:raw} OR (height_m IS NULL AND ${height_m:raw} = 10))\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC, startdt DESC NULLS LAST\nLIMIT 1",
           "refId": "A"
         }
       ],
       "title": "Gusts (${height_m}m)",
-      "type": "stat"
+      "type": "stat",
+      "description": "Most recent gusts (${height_m} m)."
     },
     {
       "datasource": {
         "type": "postgres",
         "uid": "supabase-postgres"
       },
-      "description": "NBM Probability of Thunder (POT), shown once for the selected location/model.",
+      "description": "Probability of Thunderstorm in the next 6 hours.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "max": 1,
-          "min": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -892,8 +872,87 @@
           "fields": "",
           "values": false
         },
+        "textMode": "value",
         "text": {
           "valueSize": 34
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::timestamptz\n    AND pot IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n    AND model = '$model'\n)\nSELECT\n  pot\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = '$model'\n  AND startdt = (SELECT startdt FROM selected_run)\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Prob of Thunderstorms",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 901,
+      "panels": [],
+      "title": "Sea State",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Significant Wave Height (max over next 6 hours).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 0,
+        "y": 11
+      },
+      "id": 104,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 28
         },
         "textMode": "value"
       },
@@ -906,11 +965,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE startdt <= NOW()::timestamptz\n    AND pot IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$wind_model'\n)\nSELECT\n  pot\nFROM forecast_data\nWHERE\n  pot IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$wind_model'\n  AND startdt = (SELECT startdt FROM selected_run)\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH selected_run AS (\n  SELECT MAX(startdt) AS startdt\n  FROM forecast_data\n  WHERE htsgw IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n)\nSELECT\n  ROUND(MAX(htsgw)::numeric, 1) AS value\nFROM forecast_data\nWHERE htsgw IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND startdt = (SELECT startdt FROM selected_run)",
           "refId": "A"
         }
       ],
-      "title": "Prob of Thunderstorms",
+      "title": "Wave Height (m)",
       "type": "stat"
     },
     {
@@ -918,19 +977,13 @@
         "type": "postgres",
         "uid": "supabase-postgres"
       },
+      "description": "Primary Wave Period (latest forecast value).",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": false,
-            "inspect": false
-          },
+          "decimals": 1,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -940,80 +993,34 @@
                 "value": null
               }
             ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^Wind Speed$"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "velocityknot"
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 15
-                    },
-                    {
-                      "color": "red",
-                      "value": 25
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              }
-            ]
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Last Updated"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "dateTimeAsLocal"
-              }
-            ]
-          }
-        ]
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
+        "h": 3,
+        "w": 8,
+        "x": 8,
         "y": 11
       },
-      "id": 4,
+      "id": 105,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
           ],
-          "show": false
+          "fields": "",
+          "values": false
         },
-        "showHeader": true
+        "text": {
+          "valueSize": 28
+        },
+        "textMode": "value"
       },
       "targets": [
         {
@@ -1024,12 +1031,92 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  locname AS \"Location\",\n  COALESCE(height_m, 20) AS \"Height (m)\",\n  timestamp AS \"Last Updated\",\n  windspdmean AS \"Wind Speed\"\nFROM (\n  SELECT DISTINCT ON (locname, COALESCE(height_m, 20))\n    locname,\n    height_m,\n    timestamp,\n    windspdmean\n  FROM forecast_data\n  WHERE windspdmean IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$wind_model'\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, COALESCE(height_m, 20), timestamp DESC, startdt DESC NULLS LAST\n) sub\nORDER BY locname, \"Height (m)\"",
+          "rawSql": "SELECT\n  ROUND(perpw::numeric, 1) AS value\nFROM forecast_data\nWHERE perpw IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
           "refId": "A"
         }
       ],
-      "title": "Wind Speed by Location and Height",
-      "type": "table"
+      "title": "Wave Period (s)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Primary Wave Direction (latest forecast value).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 11
+      },
+      "id": 106,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 28
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ROUND(dirpw::numeric, 0) AS value\nFROM forecast_data\nWHERE dirpw IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Wave Direction (\u00b0)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 902,
+      "panels": [],
+      "repeat": "",
+      "title": "Tide / Water Level",
+      "type": "row"
     },
     {
       "datasource": {
@@ -1208,7 +1295,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 15
       },
       "id": 9,
       "options": {
@@ -1232,7 +1319,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"time\",\n  tidemean_display,\n  tidelb_display,\n  tideub_display\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$tide_model'\n  AND '$tide_model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"time\",\n  tidemean_display,\n  tidelb_display,\n  tideub_display\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$tide_model'\n  AND '$tide_model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT s.startdt FROM (\n      SELECT startdt\n      FROM public.v_forecast_data_display\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$tide_model'\n        AND tidemean_display IS NOT NULL\n      ORDER BY startdt DESC\n      LIMIT 3\n    ) s\n    WHERE (\n      SELECT MAX(forecastdtutc) FROM public.v_forecast_data_display\n      WHERE group_id = '$group'\n        AND model = '$tide_model'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean_display IS NOT NULL\n    ) >= $__timeTo()\n    ORDER BY s.startdt DESC\n    LIMIT 1\n  )\nORDER BY \"time\"",
+          "rawSql": "SELECT\n  forecastdtutc AS \"time\",\n  tidemean_display,\n  tidelb_display,\n  tideub_display\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT s.startdt FROM (\n      SELECT DISTINCT startdt\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND tidemean IS NOT NULL\n      ORDER BY startdt DESC\n      LIMIT 24\n    ) s\n    WHERE (\n      SELECT MAX(forecastdtutc) FROM forecast_data\n      WHERE group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean IS NOT NULL\n    ) >= $__timeTo()\n    AND (\n      SELECT MIN(forecastdtutc) FROM forecast_data\n      WHERE group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean IS NOT NULL\n    ) <= s.startdt + INTERVAL '24 hours'\n    ORDER BY s.startdt DESC\n    LIMIT 1\n  )\nORDER BY \"time\"",
           "refId": "A"
         }
       ],
@@ -1271,7 +1358,7 @@
         "h": 7,
         "w": 4,
         "x": 0,
-        "y": 30
+        "y": 27
       },
       "id": 10,
       "options": {
@@ -1295,9 +1382,9 @@
             "uid": "supabase-postgres"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH nearest_points AS (\n  SELECT\n    timestamp,\n    tidemean_display,\n    LEAD(timestamp) OVER (ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean_display) OVER (ORDER BY timestamp) AS next_tidemean\n  FROM public.v_forecast_data_display\n  WHERE\n    tidemean_display IS NOT NULL\n    AND locname = '$location'\n    AND group_id = '$group'\n    AND model = '$tide_model'\n  ORDER BY timestamp\n)\nSELECT\n  NOW()::TIMESTAMPTZ AS \"time\",\n  CASE\n    WHEN next_timestamp IS NULL THEN tidemean_display\n    WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n    ELSE tidemean_display + (next_tidemean - tidemean_display) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n  END AS tidemean_display\nFROM nearest_points\nWHERE timestamp <= NOW()::TIMESTAMPTZ\nORDER BY timestamp DESC\nLIMIT 1",
+          "rawSql": "WITH latest_run AS (\n  SELECT s.startdt AS max_startdt FROM (\n    SELECT DISTINCT startdt\n    FROM forecast_data\n    WHERE startdt <= $__timeFrom()\n      AND locname = '$location'\n      AND group_id = 'grp_penobscot'\n      AND model = 'tide_blend'\n      AND tidemean IS NOT NULL\n    ORDER BY startdt DESC\n    LIMIT 24\n  ) s\n  WHERE (\n    SELECT MAX(forecastdtutc) FROM forecast_data\n    WHERE group_id = 'grp_penobscot'\n      AND model = 'tide_blend'\n      AND locname = '$location'\n      AND startdt = s.startdt\n      AND tidemean IS NOT NULL\n  ) >= $__timeTo()\n  AND (\n    SELECT MIN(forecastdtutc) FROM forecast_data\n    WHERE group_id = 'grp_penobscot'\n      AND model = 'tide_blend'\n      AND locname = '$location'\n      AND startdt = s.startdt\n      AND tidemean IS NOT NULL\n  ) <= s.startdt + INTERVAL '24 hours'\n  ORDER BY s.startdt DESC\n  LIMIT 1\n), before_pt AS (\n  SELECT timestamp, tidemean_display\n  FROM public.v_forecast_data_display\n  WHERE tidemean_display IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n    AND model = 'tide_blend'\n    AND startdt = (SELECT max_startdt FROM latest_run)\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY timestamp DESC\n  LIMIT 1\n), after_pt AS (\n  SELECT timestamp, tidemean_display\n  FROM public.v_forecast_data_display\n  WHERE tidemean_display IS NOT NULL\n    AND locname = '$location'\n    AND group_id = 'grp_penobscot'\n    AND model = 'tide_blend'\n    AND startdt = (SELECT max_startdt FROM latest_run)\n    AND timestamp > NOW()::TIMESTAMPTZ\n  ORDER BY timestamp ASC\n  LIMIT 1\n)\nSELECT\n  CASE\n    WHEN b.timestamp IS NOT NULL AND a.timestamp IS NOT NULL\n      THEN b.tidemean_display + (a.tidemean_display - b.tidemean_display)\n        * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - b.timestamp))\n        / NULLIF(EXTRACT(EPOCH FROM (a.timestamp - b.timestamp)), 0)\n    ELSE COALESCE(b.tidemean_display, a.tidemean_display)\n  END AS \"Tide Height (ft, ${datum})\"\nFROM (SELECT 1) _\nLEFT JOIN before_pt b ON true\nLEFT JOIN after_pt a ON true",
           "refId": "A"
         }
       ],
@@ -1336,8 +1423,43 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byRegexp",
-              "options": "^Date"
+              "id": "byName",
+              "options": "Predicted Value"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current Time"
             },
             "properties": [
               {
@@ -1349,36 +1471,14 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Predicted Value"
+              "options": "Datum"
             },
             "properties": [
               {
-                "id": "unit",
-                "value": "lengthft"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Tide Upper Bound"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "lengthft"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Tide Lower Bound"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "lengthft"
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
               }
             ]
           }
@@ -1388,7 +1488,7 @@
         "h": 7,
         "w": 20,
         "x": 4,
-        "y": 30
+        "y": 27
       },
       "id": 11,
       "options": {
@@ -1412,7 +1512,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH nearest_points AS (\n  SELECT\n    locname,\n    datum,\n    timestamp,\n    tidemean_display,\n    LEAD(timestamp) OVER (PARTITION BY locname ORDER BY timestamp) AS next_timestamp,\n    LEAD(tidemean_display) OVER (PARTITION BY locname ORDER BY timestamp) AS next_tidemean\n  FROM public.v_forecast_data_display\n  WHERE\n    tidemean_display IS NOT NULL\n    AND group_id = '$group'\n    AND model = '$tide_model'\n), interpolated AS (\n  SELECT\n    locname AS \"Location\",\n    NOW()::TIMESTAMPTZ AS \"Current Time\",\n    CASE\n      WHEN next_timestamp IS NULL THEN tidemean_display\n      WHEN NOW()::TIMESTAMPTZ >= next_timestamp THEN next_tidemean\n      ELSE tidemean_display + (next_tidemean - tidemean_display) * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - timestamp)) / NULLIF(EXTRACT(EPOCH FROM (next_timestamp - timestamp)), 0)\n    END AS \"Predicted Value\",\n    tide_datum AS \"Datum\",\n    ROW_NUMBER() OVER (PARTITION BY locname ORDER BY timestamp DESC) AS row_num\n  FROM nearest_points\n  WHERE timestamp <= NOW()::TIMESTAMPTZ\n)\nSELECT\n  \"Location\",\n  \"Current Time\",\n  \"Predicted Value\",\n  \"Datum\"\nFROM interpolated\nWHERE row_num = 1\nORDER BY \"Location\"",
+          "rawSql": "WITH latest_run AS (\n  -- Simple MAX(startdt): no correlated subqueries, no time-range macros.\n  -- The new idx_forecast_data_tide_current_lookup index makes this a fast\n  -- index-only scan; grp_penobscot typically has <100 distinct startdt values.\n  SELECT MAX(startdt) AS max_startdt\n  FROM forecast_data\n  WHERE group_id = 'grp_penobscot'\n    AND model = 'tide_blend'\n    AND tidemean IS NOT NULL\n    AND startdt <= NOW()\n),\nbefore_pt AS (\n  -- Most recent past forecast step per location for the latest run.\n  -- v_forecast_data_display applies unit conversion + MLLW datum offset.\n  SELECT DISTINCT ON (locname)\n    locname, tide_datum, timestamp, tidemean_display\n  FROM public.v_forecast_data_display\n  WHERE tidemean_display IS NOT NULL\n    AND group_id = 'grp_penobscot'\n    AND model = 'tide_blend'\n    AND startdt = (SELECT max_startdt FROM latest_run)\n    AND timestamp <= NOW()::TIMESTAMPTZ\n  ORDER BY locname, timestamp DESC\n),\nafter_pt AS (\n  -- First future forecast step per location (for interpolation).\n  SELECT DISTINCT ON (locname)\n    locname, timestamp, tidemean_display\n  FROM public.v_forecast_data_display\n  WHERE tidemean_display IS NOT NULL\n    AND group_id = 'grp_penobscot'\n    AND model = 'tide_blend'\n    AND startdt = (SELECT max_startdt FROM latest_run)\n    AND timestamp > NOW()::TIMESTAMPTZ\n  ORDER BY locname, timestamp ASC\n)\nSELECT\n  b.locname AS \"Location\",\n  NOW()::TIMESTAMPTZ AS \"Current Time\",\n  CASE\n    WHEN b.timestamp IS NOT NULL AND a.timestamp IS NOT NULL\n      THEN b.tidemean_display + (a.tidemean_display - b.tidemean_display)\n        * EXTRACT(EPOCH FROM (NOW()::TIMESTAMPTZ - b.timestamp))\n        / NULLIF(EXTRACT(EPOCH FROM (a.timestamp - b.timestamp)), 0)\n    ELSE COALESCE(b.tidemean_display, a.tidemean_display)\n  END AS \"Predicted Value\",\n  b.tide_datum AS \"Datum\"\nFROM before_pt b\nLEFT JOIN after_pt a ON a.locname = b.locname\nORDER BY b.locname",
           "refId": "A"
         }
       ],
@@ -1503,7 +1603,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 34
       },
       "id": 12,
       "options": {
@@ -1527,7 +1627,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  timestamp AS \"Date (${__timezone})\",\n  tidemean_display AS \"Predicted Value\",\n  tideub_display AS \"Tide Upper Bound\",\n  tidelb_display AS \"Tide Lower Bound\"\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$tide_model'\n  AND '$tide_model' NOT IN ('tide_nbm', 'tide_blend')\n  AND $__timeFilter(timestamp)\nUNION ALL\nSELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean_display AS \"Predicted Value\",\n  tideub_display AS \"Tide Upper Bound\",\n  tidelb_display AS \"Tide Lower Bound\"\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = '$group'\n  AND model = '$tide_model'\n  AND '$tide_model' IN ('tide_nbm', 'tide_blend')\n  AND startdt = (\n    SELECT s.startdt FROM (\n      SELECT startdt\n      FROM public.v_forecast_data_display\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = '$group'\n        AND model = '$tide_model'\n        AND tidemean_display IS NOT NULL\n      ORDER BY startdt DESC\n      LIMIT 3\n    ) s\n    WHERE (\n      SELECT MAX(forecastdtutc) FROM public.v_forecast_data_display\n      WHERE group_id = '$group'\n        AND model = '$tide_model'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean_display IS NOT NULL\n    ) >= $__timeTo()\n    ORDER BY s.startdt DESC\n    LIMIT 1\n  )\nORDER BY 1",
+          "rawSql": "SELECT\n  forecastdtutc AS \"Date (${__timezone})\",\n  tidemean_display AS \"Predicted Value\",\n  tideub_display AS \"Tide Upper Bound\",\n  tidelb_display AS \"Tide Lower Bound\",\n  tide_datum AS \"Datum\"\nFROM public.v_forecast_data_display\nWHERE\n  tidemean_display IS NOT NULL\n  AND locname = '$location'\n  AND group_id = 'grp_penobscot'\n  AND model = 'tide_blend'\n  AND startdt = (\n    SELECT s.startdt FROM (\n      SELECT DISTINCT startdt\n      FROM forecast_data\n      WHERE startdt <= $__timeFrom()\n        AND locname = '$location'\n        AND group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND tidemean IS NOT NULL\n      ORDER BY startdt DESC\n      LIMIT 24\n    ) s\n    WHERE (\n      SELECT MAX(forecastdtutc) FROM forecast_data\n      WHERE group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean IS NOT NULL\n    ) >= $__timeTo()\n    AND (\n      SELECT MIN(forecastdtutc) FROM forecast_data\n      WHERE group_id = 'grp_penobscot'\n        AND model = 'tide_blend'\n        AND locname = '$location'\n        AND startdt = s.startdt\n        AND tidemean IS NOT NULL\n    ) <= s.startdt + INTERVAL '24 hours'\n    ORDER BY s.startdt DESC\n    LIMIT 1\n  )\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -1538,34 +1638,13 @@
   "refresh": "5m",
   "schemaVersion": 39,
   "tags": [
-    "internal",
+    "customer",
     "wind",
-    "tide"
+    "tide",
+    "combined"
   ],
   "templating": {
     "list": [
-      {
-        "current": {
-          "text": "grp_carnival",
-          "value": "grp_carnival"
-        },
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "group",
-        "options": [],
-        "query": "SELECT DISTINCT group_id FROM forecast_data ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Customer Group"
-      },
       {
         "current": {
           "text": "wind_nbm",
@@ -1575,57 +1654,33 @@
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
-        "hide": 0,
+        "definition": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
+        "hide": 2,
         "includeAll": false,
         "multi": false,
-        "name": "wind_model",
-        "options": [],
-        "query": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL AND group_id = '$group' ORDER BY 1",
+        "name": "model",
+        "query": "SELECT DISTINCT model FROM forecast_data WHERE windspdmean IS NOT NULL ORDER BY 1",
         "refresh": 2,
         "regex": "",
         "sort": 0,
         "type": "query",
-        "label": "Wind Model"
+        "label": "Model"
       },
       {
         "current": {
-          "text": "tide_blend",
-          "value": "tide_blend"
+          "text": "Penobscot Bay",
+          "value": "Penobscot Bay"
         },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT model FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "tide_model",
-        "options": [],
-        "query": "SELECT DISTINCT model FROM forecast_data WHERE tidemean IS NOT NULL AND group_id = '$group' ORDER BY 1",
-        "refresh": 2,
-        "regex": "",
-        "sort": 0,
-        "type": "query",
-        "label": "Tide Model"
-      },
-      {
-        "current": {
-          "text": "Celebration Cay",
-          "value": "Celebration Cay"
-        },
-        "datasource": {
-          "type": "postgres",
-          "uid": "supabase-postgres"
-        },
-        "definition": "SELECT DISTINCT locname FROM forecast_data WHERE (windspdmean IS NOT NULL OR tidemean IS NOT NULL) AND group_id = '$group' ORDER BY 1",
+        "definition": "SELECT DISTINCT locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.windspdmean IS NOT NULL AND f.group_id = 'grp_penobscot' ORDER BY 2",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "location",
-        "options": [],
-        "query": "SELECT DISTINCT locname FROM forecast_data WHERE (windspdmean IS NOT NULL OR tidemean IS NOT NULL) AND group_id = '$group' ORDER BY 1",
+        "query": "SELECT DISTINCT locname AS __value, COALESCE(g.metadata->'display_name_overrides'->>f.locname, f.locname) AS __text FROM forecast_data f LEFT JOIN public.customer_groups g ON g.group_id = f.group_id AND g.metadata ? 'display_name_overrides' WHERE f.windspdmean IS NOT NULL AND f.group_id = 'grp_penobscot' ORDER BY 2",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -1634,20 +1689,20 @@
       },
       {
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "text": "10",
+          "value": "10"
         },
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
-        "hide": 0,
+        "definition": "SELECT DISTINCT COALESCE(height_m, 10) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_penobscot' ORDER BY height_m ASC",
+        "hide": 2,
         "includeAll": true,
         "multi": true,
         "name": "height_m",
         "options": [],
-        "query": "SELECT DISTINCT COALESCE(height_m, 20) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' ORDER BY height_m ASC",
+        "query": "SELECT DISTINCT COALESCE(height_m, 10) AS height_m FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_penobscot' ORDER BY height_m ASC",
         "refresh": 2,
         "regex": "",
         "sort": 1,
@@ -1655,18 +1710,17 @@
         "label": "Height (m)"
       },
       {
-        "current": {},
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' AND model = '$wind_model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "definition": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_penobscot' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
         "hide": 2,
         "includeAll": false,
         "multi": false,
         "name": "data_time",
         "options": [],
-        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = '$group' AND model = '$wind_model' AND timestamp <= NOW()::TIMESTAMPTZ",
+        "query": "SELECT to_char(MAX(timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_data WHERE windspdmean IS NOT NULL AND locname = '$location' AND group_id = 'grp_penobscot' AND model = '$model' AND timestamp <= NOW()::TIMESTAMPTZ",
         "refresh": 2,
         "regex": "",
         "sort": 0,
@@ -1674,18 +1728,17 @@
         "label": "Data Time"
       },
       {
-        "current": {},
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT DISTINCT tide_datum FROM public.v_forecast_data_display WHERE locname = '$location' AND tide_datum IS NOT NULL LIMIT 1",
+        "definition": "SELECT COALESCE(\n  NULLIF(l.metadata->'vertical_datum'->>'display_vertical_datum', ''),\n  NULLIF(l.metadata->'vertical_datum'->>'storage_vertical_datum', ''),\n  d.datum,\n  'MSL'\n) AS tide_datum\nFROM (\n  SELECT locid, datum\n  FROM forecast_data\n  WHERE group_id = 'grp_penobscot'\n    AND locname = '$location'\n    AND datum IS NOT NULL\n  ORDER BY timestamp DESC\n  LIMIT 1\n) d\nLEFT JOIN public.forecast_locations l\n  ON l.group_id = 'grp_penobscot' AND l.locid = d.locid",
         "hide": 2,
         "includeAll": false,
         "multi": false,
         "name": "datum",
         "options": [],
-        "query": "SELECT DISTINCT tide_datum FROM public.v_forecast_data_display WHERE locname = '$location' AND tide_datum IS NOT NULL LIMIT 1",
+        "query": "SELECT COALESCE(\n  NULLIF(l.metadata->'vertical_datum'->>'display_vertical_datum', ''),\n  NULLIF(l.metadata->'vertical_datum'->>'storage_vertical_datum', ''),\n  d.datum,\n  'MSL'\n) AS tide_datum\nFROM (\n  SELECT locid, datum\n  FROM forecast_data\n  WHERE group_id = 'grp_penobscot'\n    AND locname = '$location'\n    AND datum IS NOT NULL\n  ORDER BY timestamp DESC\n  LIMIT 1\n) d\nLEFT JOIN public.forecast_locations l\n  ON l.group_id = 'grp_penobscot' AND l.locid = d.locid",
         "refresh": 1,
         "regex": "",
         "sort": 0,
@@ -1693,23 +1746,40 @@
         "label": "Datum"
       },
       {
-        "current": {},
         "datasource": {
           "type": "postgres",
           "uid": "supabase-postgres"
         },
-        "definition": "SELECT COALESCE((SELECT timezone FROM public.forecast_locations WHERE group_id = '$group' AND locname = '$location' LIMIT 1), (SELECT default_timezone FROM public.customer_groups WHERE group_id = '$group'), 'UTC')",
+        "definition": "SELECT COALESCE((SELECT timezone FROM public.forecast_locations WHERE group_id = 'grp_penobscot' AND locname = '$location' LIMIT 1), (SELECT default_timezone FROM public.customer_groups WHERE group_id = 'grp_penobscot'), 'UTC')",
         "hide": 2,
         "includeAll": false,
         "multi": false,
         "name": "location_tz",
         "options": [],
-        "query": "SELECT COALESCE((SELECT timezone FROM public.forecast_locations WHERE group_id = '$group' AND locname = '$location' LIMIT 1), (SELECT default_timezone FROM public.customer_groups WHERE group_id = '$group'), 'UTC')",
+        "query": "SELECT COALESCE((SELECT timezone FROM public.forecast_locations WHERE group_id = 'grp_penobscot' AND locname = '$location' LIMIT 1), (SELECT default_timezone FROM public.customer_groups WHERE group_id = 'grp_penobscot'), 'UTC')",
         "refresh": 2,
         "regex": "",
         "sort": 0,
         "type": "query",
         "label": "Location Timezone"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT CASE WHEN abs(EXTRACT(epoch FROM NOW()) - EXTRACT(epoch FROM NOW() AT TIME ZONE '$location_tz')) / 3600 >= 4 THEN 'UTC' ELSE 'UTC' END",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "tz_abbrev",
+        "options": [],
+        "query": "SELECT CASE WHEN abs(EXTRACT(epoch FROM NOW()) - EXTRACT(epoch FROM NOW() AT TIME ZONE '$location_tz')) / 3600 >= 4 THEN 'UTC' ELSE 'UTC' END",
+        "refresh": 1,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Timezone Abbreviation"
       }
     ]
   },
@@ -1719,8 +1789,8 @@
   },
   "timepicker": {},
   "timezone": "utc",
-  "title": "Wind & Tide Forecast",
-  "uid": "wind_tide",
+  "title": "Penobscot Forecasts \u2014 Wind & Tide Forecast",
+  "uid": "tide_wind-grp_penobscot",
   "version": 1,
   "weekStart": ""
 }

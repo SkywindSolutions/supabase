@@ -13,10 +13,13 @@
 #     1. Disables the Grafana user(s) via POST /api/admin/users/:id/disable
 #        (prevents login; user record, teams, folder permissions preserved)
 #     2. Disables alert subscriptions (enabled = false) for matching grafana_login
+#     3. Marks the account inactive in public.customer_account_status
+#        (so the Customer Access Statistics dashboard excludes it)
 #
 #   reactivate:
 #     1. Enables the Grafana user(s) via POST /api/admin/users/:id/enable
 #     2. Enables alert subscriptions (enabled = true) for matching grafana_login
+#     3. Marks the account active again in public.customer_account_status
 #
 #   status:
 #     1. Shows whether the user is currently disabled or enabled in Grafana
@@ -307,6 +310,15 @@ case "$ACTION" in
             else
                 log "    WARNING: Could not update alert subscriptions for '$login' (table may not exist)"
             fi
+
+            # Mark account inactive in the status table (drives Customer Access Stats)
+            if sudo docker exec supabase-db psql -U postgres -d postgres -t \
+                -c "INSERT INTO public.customer_account_status (grafana_login, is_active) VALUES ('$login', false) ON CONFLICT (grafana_login) DO UPDATE SET is_active = false, updated_at = NOW();" \
+                2>/dev/null; then
+                log "    Marked '$login' inactive in customer_account_status."
+            else
+                log "    WARNING: Could not update customer_account_status for '$login' (table may not exist — run db/migrations/20260822000002_create_customer_account_status.sql)"
+            fi
         done
 
         log "=== Deactivation complete ==="
@@ -341,6 +353,15 @@ case "$ACTION" in
             else
                 log "    WARNING: Could not update alert subscriptions for '$login' (table may not exist)"
             fi
+
+            # Mark account active again in the status table (drives Customer Access Stats)
+            if sudo docker exec supabase-db psql -U postgres -d postgres -t \
+                -c "INSERT INTO public.customer_account_status (grafana_login, is_active) VALUES ('$login', true) ON CONFLICT (grafana_login) DO UPDATE SET is_active = true, updated_at = NOW();" \
+                2>/dev/null; then
+                log "    Marked '$login' active in customer_account_status."
+            else
+                log "    WARNING: Could not update customer_account_status for '$login' (table may not exist)"
+            fi
         done
 
         log "=== Reactivation complete ==="
@@ -348,8 +369,8 @@ case "$ACTION" in
 
     status)
         log "=== Account status ==="
-        printf "%-24s %-12s %-14s %s\n" "Login" "User ID" "Grafana Status" "Alert Subs"
-        printf "%-24s %-12s %-14s %s\n" "------" "-------" "--------------" "----------"
+        printf "%-24s %-12s %-14s %-14s %s\n" "Login" "User ID" "Grafana Status" "Stats Active" "Alert Subs"
+        printf "%-24s %-12s %-14s %-14s %s\n" "------" "-------" "--------------" "------------" "----------"
 
         for login in "${!USER_IDS[@]}"; do
             uid="${USER_IDS[$login]}"
@@ -358,6 +379,19 @@ case "$ACTION" in
                 gf_status="DISABLED"
             else
                 gf_status="enabled"
+            fi
+
+            # Status-table active flag (drives Customer Access Stats dashboard)
+            stats_status="N/A"
+            stats_row=$(sudo docker exec supabase-db psql -U postgres -d postgres -t \
+                -c "SELECT is_active::text FROM public.customer_account_status WHERE grafana_login = '$login';" \
+                2>/dev/null | tr -d ' ' | head -1)
+            if [[ -n "$stats_row" ]]; then
+                if [[ "$stats_row" == "t" ]]; then
+                    stats_status="active"
+                else
+                    stats_status="inactive"
+                fi
             fi
 
             # Count alert subscriptions
@@ -370,7 +404,7 @@ case "$ACTION" in
                     2>/dev/null | tr -d ' ' | head -1)
             fi
 
-            printf "%-24s %-12s %-14s %s\n" "$login" "$uid" "$gf_status" "${alert_info:-N/A}"
+            printf "%-24s %-12s %-14s %-14s %s\n" "$login" "$uid" "$gf_status" "$stats_status" "${alert_info:-N/A}"
         done
         ;;
 esac

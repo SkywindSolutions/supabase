@@ -1,0 +1,1400 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Interactive spatial probability map for gridded European forecast data. Grid cells are rendered as filled rectangles (pcolormesh-style) via a GeoJSON FeatureCollection served by the local tile-server container. The native 1°×1° source resolution is preserved with no interpolation applied. Color scale: blue (low) → yellow (moderate) → red (high). Select the forecast valid time from the dropdown to change the displayed frame.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 900,
+      "panels": [],
+      "title": "European Gridded Forecast Map",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Probability field rendered as filled grid-cell rectangles (pcolormesh-style) over a 1°×1° regular lat/lon grid covering Europe (36 lat × 51 lon = 1,836 cells). Data is served by the local tile-server container as a GeoJSON FeatureCollection via the /geojson/ route. Each Polygon feature represents exactly one native grid cell — no interpolation or smoothing. Color scale: blue → yellow → red. Select the forecast valid time with the Forecast Valid Time variable. Hover over any cell to see its exact probability value.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlYlRd"
+          },
+          "custom": {},
+          "decimals": 1,
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#313695",
+                "value": null
+              },
+              {
+                "color": "#4575b4",
+                "value": 0.05
+              },
+              {
+                "color": "#74add1",
+                "value": 0.1
+              },
+              {
+                "color": "#abd9e9",
+                "value": 0.15
+              },
+              {
+                "color": "#e0f3f8",
+                "value": 0.2
+              },
+              {
+                "color": "#ffffbf",
+                "value": 0.25
+              },
+              {
+                "color": "#fee090",
+                "value": 0.35
+              },
+              {
+                "color": "#fdae61",
+                "value": 0.45
+              },
+              {
+                "color": "#f46d43",
+                "value": 0.55
+              },
+              {
+                "color": "#d73027",
+                "value": 0.65
+              },
+              {
+                "color": "#a50026",
+                "value": 0.8
+              },
+              {
+                "color": "#67001f",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "probability"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Probability"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "latitude"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Latitude"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "longitude"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Longitude"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fhr"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast Hour"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value_mean"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mean Value"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value_ub"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Upper Bound"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value_lb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Lower Bound"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fcst_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Forecast Time (UTC)"
+              },
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "basemap": {
+          "name": "Esri World Topo",
+          "type": "xyz",
+          "config": {
+            "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+            "attribution": "Tiles © Esri — Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community"
+          }
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "name": "Probability Grid",
+            "type": "geojson",
+            "config": {
+              "src": "${tile_base_url}/geojson/${group_id:raw}/${model:raw}/${tile_ts:raw}?res=0.2&min_prob=0.05",
+              "rules": [
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.98
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#890026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.96
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#930026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.94
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#9c0026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.92
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#a60026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.9
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#af0026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.88
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#b90026"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.86
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#c00225"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.84
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#c60623"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.82
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#cd0b21"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.8
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#d30f20"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.78
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#d9131e"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.76
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#df171c"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.74
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#e41d1c"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.72
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#e8251f"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.7
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#ec2d21"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.68
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#f03623"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.66
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#f53f26"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.64
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#f94828"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.62
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc502a"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.6
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc5a2d"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.58
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc6430"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.56
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc6e33"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.54
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc7836"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.52
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc8238"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.5
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fc8c3b"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.48
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fd933e"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.46
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fd9941"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.44
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fd9e43"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.42
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fda446"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.4
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fdaa48"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.38
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fdb04b"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.36
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#feb650"
+                    },
+                    "opacity": 0.75
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.34
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#febc57"
+                    },
+                    "opacity": 0.73
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.32
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fec35f"
+                    },
+                    "opacity": 0.7
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.3
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#feca65"
+                    },
+                    "opacity": 0.66
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.28
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fed06c"
+                    },
+                    "opacity": 0.63
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.26
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fed673"
+                    },
+                    "opacity": 0.6
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.24
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#feda79"
+                    },
+                    "opacity": 0.56
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.22
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fedd80"
+                    },
+                    "opacity": 0.53
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.2
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fee186"
+                    },
+                    "opacity": 0.49
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.18
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fee48d"
+                    },
+                    "opacity": 0.46
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.16
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fee795"
+                    },
+                    "opacity": 0.42
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.14
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#feeb9b"
+                    },
+                    "opacity": 0.39
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.12
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#ffeea2"
+                    },
+                    "opacity": 0.36
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.1
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fff0a9"
+                    },
+                    "opacity": 0.32
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.08
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fff3b0"
+                    },
+                    "opacity": 0.29
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.06
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fff6b7"
+                    },
+                    "opacity": 0.25
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.04
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fff9be"
+                    },
+                    "opacity": 0.22
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.02
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#fffcc5"
+                    },
+                    "opacity": 0.18
+                  }
+                },
+                {
+                  "check": {
+                    "property": "probability",
+                    "operation": "gte",
+                    "value": 0.0
+                  },
+                  "style": {
+                    "color": {
+                      "fixed": "#ffffcc"
+                    },
+                    "opacity": 0.15
+                  }
+                }
+              ],
+              "defaultStyle": {
+                "color": {
+                  "fixed": "#ffffcc"
+                },
+                "opacity": 0.15,
+                "lineWidth": 0
+              }
+            }
+          },
+          {
+            "name": "Borders & Labels",
+            "type": "xyz",
+            "config": {
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+              "attribution": "Tiles © Esri"
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 52.0,
+          "lon": 10.0,
+          "zoom": 4
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [],
+      "title": "European Probability Grid — ${group_id} (${model}) @ ${tile_ts}",
+      "type": "geomap"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 901,
+      "panels": [],
+      "title": "Domain Statistics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "description": "Spatial statistics over the full European grid for the selected time window. Shows domain-wide min, mean, and max probability at each forecast hour.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Probability",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "domain_avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Domain Mean"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "domain_max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Domain Max"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    6,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "domain_min"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Domain Min"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    3,
+                    3
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:  M/D h A  "
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "supabase-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  gd.timestamp AS \"time\",\n  AVG(gd.probability) AS domain_avg,\n  MAX(gd.probability) AS domain_max,\n  MIN(gd.probability) AS domain_min\nFROM forecast_grid_data gd\nWHERE\n  gd.group_id = '$group_id'\n  AND gd.model = '$model'\n  AND gd.probability IS NOT NULL\n  AND $__timeFilter(gd.timestamp)\nGROUP BY gd.timestamp\nORDER BY gd.timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Domain-wide Probability Statistics — ${group_id}",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "id": 902,
+      "panels": [],
+      "title": "Query Configuration & Info",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 950,
+      "panels": [],
+      "title": "",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "supabase-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "none"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 960,
+      "options": {
+        "content": "<div style=\"padding:8px 0;\">\n  <div style=\"font-size:14px;font-weight:600;margin-bottom:4px;\">How to Use This Dashboard</div>\n  <div style=\"font-size:13px;color:var(--text-secondary);line-height:1.6;\">\n    • <b>Forecast Valid Time:</b> Use the <b>Forecast Valid Time</b> dropdown to select\n    the hour you want to view. The map re-fetches automatically.\n    <br/>\n    • <b>Interaction:</b> Pan by dragging, zoom with scroll wheel or pinch. Hover over\n    any grid cell to see its exact probability value in the tooltip.\n    <br/>\n    • <b>Rendering:</b> Each 1°×1° grid cell is rendered as a filled rectangle\n    (identical to matplotlib's <code>pcolormesh</code>). No interpolation or smoothing is\n    applied — you see the native model resolution. Cell borders are hidden.\n    <br/>\n    • <b>Color Scale:</b> Blue = low probability → Yellow = moderate → Red = high.\n    12 threshold steps matching the dashboard's standard BlYlRd palette.\n    <br/>\n    • <b>Data Flow:</b> Browser → /geojson/&lt;group&gt;/&lt;model&gt;/&lt;time&gt; → tile-server\n    container → PostgreSQL <code>forecast_grid_data</code>. GeoJSON is cached for\n    5 minutes server-side. Response size: ~275 KB uncompressed, ~60 KB gzipped.\n    <br/>\n    • <b>Native Resolution:</b> 1°×1° (~111 km), 1,836 cells per hour,\n    covering Europe 35°–70° N, 10° W–40° E. Cells auto-resize if a finer-\n    resolution grid is ingested.\n  </div>\n</div>",
+        "mode": "html"
+      },
+      "title": "",
+      "type": "text"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "internal",
+    "map",
+    "spatial",
+    "heatmap",
+    "europe",
+    "grid",
+    "example"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "grp_europe_grid",
+          "value": "grp_europe_grid"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT group_id FROM forecast_grid_data WHERE probability IS NOT NULL ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "group_id",
+        "options": [],
+        "query": "SELECT DISTINCT group_id FROM forecast_grid_data WHERE probability IS NOT NULL ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Customer Group"
+      },
+      {
+        "current": {
+          "text": "grid_ensemble",
+          "value": "grid_ensemble"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT model FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "model",
+        "options": [],
+        "query": "SELECT DISTINCT model FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Model"
+      },
+      {
+        "current": {
+          "text": "2026-07-12 00:00 UTC",
+          "value": "2026-07-12 00:00 UTC"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT to_char(forecastdtutc AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' AND model = '$model' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "forecast_init",
+        "options": [],
+        "query": "SELECT DISTINCT to_char(forecastdtutc AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' AND model = '$model' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Forecast Init"
+      },
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT to_char(MAX(gd.timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_grid_data gd WHERE gd.probability IS NOT NULL AND gd.group_id = '$group_id' AND gd.model = '$model' AND gd.timestamp <= NOW()::TIMESTAMPTZ",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "data_time",
+        "options": [],
+        "query": "SELECT to_char(MAX(gd.timestamp) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI\" UTC\"') FROM forecast_grid_data gd WHERE gd.probability IS NOT NULL AND gd.group_id = '$group_id' AND gd.model = '$model' AND gd.timestamp <= NOW()::TIMESTAMPTZ",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Latest Data"
+      },
+      {
+        "current": {
+          "text": "2026-07-12T0800Z",
+          "value": "2026-07-12T0800Z"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "supabase-postgres"
+        },
+        "definition": "SELECT DISTINCT to_char(\"timestamp\" AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24MI\"Z\"') FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' AND model = '$model' ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "tile_ts",
+        "options": [],
+        "query": "SELECT DISTINCT to_char(\"timestamp\" AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24MI\"Z\"') FROM forecast_grid_data WHERE probability IS NOT NULL AND group_id = '$group_id' AND model = '$model' ORDER BY 1",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "type": "query",
+        "label": "Forecast Valid Time"
+      },
+      {
+        "current": {
+          "text": "https://dashboard.skywindsolutions.com",
+          "value": "https://dashboard.skywindsolutions.com"
+        },
+        "hide": 2,
+        "name": "tile_base_url",
+        "query": "https://dashboard.skywindsolutions.com",
+        "type": "constant",
+        "label": "Tile Server Base URL"
+      }
+    ]
+  },
+  "time": {
+    "from": "2026-07-12T08:00:00.000Z",
+    "to": "2026-07-12T10:00:00.000Z"
+  },
+  "timepicker": {
+    "hidden": false,
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "utc",
+  "title": "Map Example — European Gridded Probability",
+  "uid": "map-example",
+  "version": 9,
+  "weekStart": ""
+}
